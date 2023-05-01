@@ -86,8 +86,10 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(log_name), exist_ok=True)
     with open(log_name, 'w') as logFile:
         with redirect_stdout(logFile):
-            trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders, learning_rate=0.001,
-                                      device=device, logger=None, log=False, validation=True)
+            # Add momentum=0.9 for optimizer when using SGD for optimizer
+            trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders,
+                                      device=device, logger=None, log=False, validation=True,
+                                      optimizer=torch.optim.SGD(pretrained_torch_model.parameters(), lr=0.001, momentum=0.9))
             trainer.train(epochs=train_length)
 
     torch.save(pretrained_torch_model.state_dict(), state_name)

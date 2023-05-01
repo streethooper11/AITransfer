@@ -7,17 +7,16 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
 class Trainer():
-    def __init__(self, model, model_name, loaders, learning_rate, device, logger, log, validation=True):
+    def __init__(self, model, model_name, loaders, device, logger, log, validation=True, optimizer=None):
         self.model = model.to(device)
         self.model_name = model_name
         self.loaders = loaders
-        self.learning_rate = learning_rate
         self.device = device
         self.logger = logger
         self.log = log
         self.validation = validation
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate, momentum=0.9)
+        self.optimizer = optimizer
 
     def train_step(self, images, labels):
         images = images.to(self.device)
