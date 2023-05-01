@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
 class Trainer():
-    def __init__(self, model, model_name, loaders, device, logger, log, validation=True, optimizer=None):
+    def __init__(self, model, model_name, loaders, device, logger, log, validation=True, optimizer=None, loss=nn.CrossEntropyLoss()):
         self.model = model.to(device)
         self.model_name = model_name
         self.loaders = loaders
@@ -15,8 +15,8 @@ class Trainer():
         self.logger = logger
         self.log = log
         self.validation = validation
-        self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optimizer
+        self.criterion = loss
 
     def train_step(self, images, labels):
         images = images.to(self.device)
