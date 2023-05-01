@@ -1,6 +1,8 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 
 import os
+from contextlib import redirect_stdout
+
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
@@ -83,8 +85,9 @@ if __name__ == "__main__":
     train_length = 5
     os.makedirs(os.path.dirname(log_name), exist_ok=True)
     with open(log_name, 'w') as logFile:
-        trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders, learning_rate=0.001,
-                                  device=device, logger=None, log=False, validation=True, logFile=logFile)
-        trainer.train(epochs=train_length)
+        with redirect_stdout(logFile):
+            trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders, learning_rate=0.001,
+                                      device=device, logger=None, log=False, validation=True)
+            trainer.train(epochs=train_length)
 
     torch.save(pretrained_torch_model.state_dict(), state_name)
