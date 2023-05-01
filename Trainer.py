@@ -76,11 +76,11 @@ class Trainer():
         cm = confusion_matrix(y_test, y_pred)
         tn, fp, fn, tp = map(float, cm.ravel())
 
-        sensitivity = tp / (tp + fn)
-        specificity = tn / (tn + fp)
-        precision = tp / (tp + fp)
+        sensitivity = 0 if (tp + fn) == 0 else tp / (tp + fn)
+        specificity = 0 if (tn + fp) == 0 else tn / (tn + fp)
+        precision = 0 if (tp + fp) == 0 else tp / (tp + fp)
         accuracy = (tp + tn) / (tp + tn + fp + fn)
-        f1score = 2 * (sensitivity * precision) / (sensitivity + precision)
+        f1score = 0 if (sensitivity + precision) == 0 else 2 * (sensitivity * precision) / (sensitivity + precision)
 
 #        ConfusionMatrixDisplay(cm).plot()
 #        plt.show()
