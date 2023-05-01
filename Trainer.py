@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
 class Trainer():
-    def __init__(self, model, model_name, loaders, learning_rate, device, logger, log=True, validation=True):
+    def __init__(self, model, model_name, loaders, learning_rate, device, logger, log, validation=True, logFile=None):
         self.model = model.to(device)
         self.model_name = model_name
         self.loaders = loaders
@@ -16,6 +16,7 @@ class Trainer():
         self.logger = logger
         self.log = log
         self.validation = validation
+        self.logFile = logFile
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate, momentum=0.9)
 
@@ -45,7 +46,7 @@ class Trainer():
 
             accuracy = total_correct / total
             loss = total_loss / total
-            print(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})')
+            print(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})', file=self.logFile)
             if self.validation:
                 eval_loss, eval_acc = self.evaluate(epoch, mode='test')
                 if self.log:
@@ -87,8 +88,8 @@ class Trainer():
 #        ConfusionMatrixDisplay(cm).plot()
 #        plt.show()
 
-        print(f'============={mode} epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})=============')
-        print(f'=============Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=============')
-        print(f'=============Precision ({precision:6.4f}) F1 Score ({f1score:6.4f})=============')
+        print(f'====={mode} epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})=====', file=self.logFile)
+        print(f'=====Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=====', file=self.logFile)
+        print(f'=====Precision ({precision:6.4f}) F1 Score ({f1score:6.4f})=====', file=self.logFile)
 
         return loss, accuracy
