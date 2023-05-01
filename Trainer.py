@@ -54,8 +54,7 @@ class Trainer():
                                                          "val_{mn}".format(mn=self.model_name): eval_acc}, epoch)
                     self.logger.add_scalars('Loss', {"train_{mn}".format(mn=self.model_name): loss,
                                                      "val_{mn}".format(mn=self.model_name): eval_loss}, epoch)
-
-        self.logger.close()
+            print(f'Epoch {epoch} done')
 
     def evaluate(self, epoch=0, mode='test'):
         self.model.eval()

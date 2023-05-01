@@ -87,4 +87,4 @@ if __name__ == "__main__":
                                   device=device, logger=None, log=False, validation=True, logFile=logFile)
         trainer.train(epochs=train_length)
 
-    torch.save(pretrained_torch_model.statedict(), state_name)
+    torch.save(pretrained_torch_model.state_dict(), state_name)
