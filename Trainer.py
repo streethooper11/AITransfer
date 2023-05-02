@@ -1,4 +1,7 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
+import os
+import threading
+from contextlib import redirect_stdout
 
 import torch
 import matplotlib.pyplot as plt
@@ -6,8 +9,10 @@ from torch import nn
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
-class Trainer():
-    def __init__(self, model, model_name, loaders, device, logger, log, validation=True, optimizer=None, loss=nn.CrossEntropyLoss()):
+class Trainer(threading.Thread):
+    def __init__(self, model, model_name, loaders, device, logger, log=True, validation=True, optimizer=None,
+                 loss=nn.CrossEntropyLoss(), epochs=10, logSave=None, fileSave=None):
+        threading.Thread.__init__(self)
         self.model = model.to(device)
         self.model_name = model_name
         self.loaders = loaders
@@ -17,6 +22,9 @@ class Trainer():
         self.validation = validation
         self.optimizer = optimizer
         self.criterion = loss
+        self.epochs = epochs
+        self.logSave = logSave
+        self.fileSave = fileSave
 
     def train_step(self, images, labels):
         images = images.to(self.device)
@@ -30,29 +38,35 @@ class Trainer():
 
         return predictions, labels, loss
 
-    def train(self, epochs):
-        for epoch in range(epochs):
-            self.model.train()
-            total = 0
-            total_correct = 0
-            total_loss = 0
-            for i, (images, labels) in enumerate(self.loaders['train']):
-                predictions, labels, loss = self.train_step(images, labels)
-                total += images.size(0)
-                total_correct += (predictions == labels).sum()
-                total_loss += loss.item() * images.size(0)
+    def run(self):
+        os.makedirs(os.path.dirname(self.logSave), exist_ok=True)
+        with open(self.logSave, 'w') as logFile:
+            with redirect_stdout(logFile):
+                for epoch in range(self.epochs):
+                    self.model.train()
+                    total = 0
+                    total_correct = 0
+                    total_loss = 0
+                    for i, (images, labels) in enumerate(self.loaders['train']):
+                        predictions, labels, loss = self.train_step(images, labels)
+                        total += images.size(0)
+                        total_correct += (predictions == labels).sum()
+                        total_loss += loss.item() * images.size(0)
 
-            accuracy = total_correct / total
-            loss = total_loss / total
-            print(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})')
-            if self.validation:
-                eval_loss, eval_acc = self.evaluate(epoch, mode='test')
-                if self.log:
-                    self.logger.add_scalars('Accuracy', {"train_{mn}".format(mn=self.model_name): accuracy,
-                                                         "val_{mn}".format(mn=self.model_name): eval_acc}, epoch)
-                    self.logger.add_scalars('Loss', {"train_{mn}".format(mn=self.model_name): loss,
-                                                     "val_{mn}".format(mn=self.model_name): eval_loss}, epoch)
-            print(f'Epoch {epoch} done')
+                    accuracy = total_correct / total
+                    loss = total_loss / total
+                    print(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})')
+                    if self.validation:
+                        eval_loss, eval_acc = self.evaluate(epoch, mode='test')
+                        if self.log:
+                            self.logger.add_scalars('Accuracy', {"train_{mn}".format(mn=self.model_name): accuracy,
+                                                                 "val_{mn}".format(mn=self.model_name): eval_acc},
+                                                    epoch)
+                            self.logger.add_scalars('Loss', {"train_{mn}".format(mn=self.model_name): loss,
+                                                             "val_{mn}".format(mn=self.model_name): eval_loss}, epoch)
+                    print(f'Epoch {epoch} done')
+
+            torch.save(self.model.state_dict(), self.fileSave)
 
     def evaluate(self, epoch=0, mode='test'):
         self.model.eval()
@@ -82,8 +96,8 @@ class Trainer():
         accuracy = (tp + tn) / (tp + tn + fp + fn)
         f1score = 0 if (sensitivity + precision) == 0 else 2 * (sensitivity * precision) / (sensitivity + precision)
 
-#        ConfusionMatrixDisplay(cm).plot()
-#        plt.show()
+        #        ConfusionMatrixDisplay(cm).plot()
+        #        plt.show()
 
         print(f'====={mode} epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})=====')
         print(f'=====Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=====')

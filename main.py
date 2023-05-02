@@ -42,19 +42,23 @@ if __name__ == "__main__":
 
     clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName)
 
-    pretrained_torch_model = torchvision.models.alexnet(weights='DEFAULT')
+    models = []
+    for i in range(3):
+        models.append(torchvision.models.alexnet(weights='DEFAULT'))
+
     # For the ones that use classifier layers
-    print(pretrained_torch_model.classifier[-1])
+    print(models[0].classifier[-1])
     # For the ones that use fc as the last layer
-    # print(pretrained_torch_model.fc)
+    # print(models[0].fc)
 
     ImageNet_transforms = torchvision.models.AlexNet_Weights.DEFAULT.transforms()
     print(ImageNet_transforms)
 
-    # For the ones that use classifier layers
-    pretrained_torch_model.classifier[-1] = nn.Linear(in_features=4096, out_features=2, bias=True)
-    # For the ones that use fc as the last layer
-    # pretrained_torch_model.fc = nn.Linear(in_features=512, out_features=2)
+    for model in models:
+        # For the ones that use classifier layers
+        model.classifier[-1] = nn.Linear(in_features=4096, out_features=2, bias=True)
+        # For the ones that use fc as the last layer
+        # model..fc = nn.Linear(in_features=1024, out_features=2, bias=True)  # binary output
 
     transform = transforms.Compose(
         [
@@ -79,18 +83,40 @@ if __name__ == "__main__":
     # trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders,
     #                           0.001, device, tb_writer, False)
 
-    log_name = 'save\\AlexNet.log'
-    state_name = 'save\\AlexNet.pth'
+    train_length = 7
 
-    train_length = 5
-    os.makedirs(os.path.dirname(log_name), exist_ok=True)
-    with open(log_name, 'w') as logFile:
-        with redirect_stdout(logFile):
-            # Add momentum=0.9 for optimizer when using SGD for optimizer
-            trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders,
-                                      device=device, logger=None, log=False, validation=True,
-                                      optimizer=torch.optim.SGD(pretrained_torch_model.parameters(), lr=0.001, momentum=0.9),
-                                      loss=nn.CrossEntropyLoss())
-            trainer.train(epochs=train_length)
+    log_name = 'save\\AlexNet_Adam_0.00001.log'
+    state_name = 'save\\AlexNet_Adam_0.00001.pth'
 
-    torch.save(pretrained_torch_model.state_dict(), state_name)
+    # Add momentum=0.9 for optimizer when using SGD for optimizer
+    trainer1 = Trainer(models[0], "TorchPretrained", loaders, device=device,
+                       logger=None, log=False, validation=True,
+                       optimizer=torch.optim.Adam(models[0].parameters(), lr=0.00001),
+                       loss=nn.CrossEntropyLoss(), epochs=train_length, logSave=log_name,
+                       fileSave=state_name)
+
+    log_name = 'save\\AlexNet_Adam_0.00002.log'
+    state_name = 'save\\AlexNet_Adam_0.00002.pth'
+
+    trainer2 = Trainer(models[1], "TorchPretrained", loaders, device=device,
+                       logger=None, log=False, validation=True,
+                       optimizer=torch.optim.Adam(models[1].parameters(), lr=0.00002),
+                       loss=nn.CrossEntropyLoss(), epochs=train_length, logSave=log_name,
+                       fileSave=state_name)
+
+    log_name = 'save\\AlexNet_Adam_0.00005.log'
+    state_name = 'save\\AlexNet_Adam_0.00005.pth'
+
+    trainer3 = Trainer(models[2], "TorchPretrained", loaders, device=device,
+                       logger=None, log=False, validation=True,
+                       optimizer=torch.optim.Adam(models[2].parameters(), lr=0.00005),
+                       loss=nn.CrossEntropyLoss(), epochs=train_length, logSave=log_name,
+                       fileSave=state_name)
+
+    trainer1.start()
+    trainer2.start()
+    trainer3.start()
+
+    trainers = [trainer1, trainer2, trainer3]
+    for t in trainers:
+        t.join()
