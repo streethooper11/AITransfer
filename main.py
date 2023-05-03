@@ -1,6 +1,7 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 
 import torch
+import torchvision
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 import csv
@@ -40,16 +41,13 @@ if __name__ == "__main__":
 
     clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName)
 
-    #    model = torchvision.models.convnext_small(weights='DEFAULT')
+    # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
     # For the ones that use classifier layers
-    #    print(model.classifier[-1])
+    # print(model.classifier[-1])
     # For the ones that use fc as the last layer
-    # print(models[0].fc)
-    #    ImageNet_transforms = torchvision.models.ConvNeXt_Small_Weights.DEFAULT.transforms()
-    #    print(ImageNet_transforms)
-
-    alexModel = Models.AlexNet(outputNum)
-    mobileV3Model = Models.MobileNetV3L(outputNum)
+    # print(model.fc)
+    # ImageNet_transforms = torchvision.models.RegNet_Y_400MF_Weights.DEFAULT.transforms()
+    # print(ImageNet_transforms)
 
     models = []
     loaders = []
@@ -59,6 +57,7 @@ if __name__ == "__main__":
     models.append(Models.EfficientNetB0(outputNum))
     models.append(Models.ResNet18(outputNum))
     models.append(Models.ResNet50(outputNum))
+    models.append(Models.RegNetY400MF(outputNum))
 
     for model in models:
         loaders.append(

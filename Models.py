@@ -72,3 +72,17 @@ class ResNet50:
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
+
+
+class RegNetY400MF:
+    def __init__(self, num_classes=2):
+        self.name = 'RegNetY400MF'
+        self.model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
+        self.model.fc = nn.Linear(in_features=440, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(232, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
