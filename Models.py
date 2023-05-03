@@ -46,6 +46,20 @@ class EfficientNetB0:
             ])
 
 
+class MaxVitT:
+    def __init__(self, num_classes=2):
+        self.name = 'MaxvitT'
+        self.model = torchvision.models.maxvit_t(weights='DEFAULT')
+        self.model.classifier[-1] = nn.Linear(in_features=512, out_features=num_classes, bias=False)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(224, InterpolationMode.BICUBIC),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
 class ResNet18:
     def __init__(self, num_classes=2):
         self.name = 'ResNet18'
@@ -83,6 +97,34 @@ class RegNetY400MF:
             [
                 transforms.Resize(232, InterpolationMode.BILINEAR),
                 transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class MNasNet05:
+    def __init__(self, num_classes=2):
+        self.name = 'MNasNet05'
+        self.model = torchvision.models.mnasnet0_5(weights='DEFAULT')
+        self.model.fc = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(256, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class InceptionV3:
+    def __init__(self, num_classes=2):
+        self.name = 'InceptionV3'
+        self.model = torchvision.models.inception_v3(weights='DEFAULT')
+        self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(342, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(299),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
