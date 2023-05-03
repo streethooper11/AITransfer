@@ -3,8 +3,10 @@
 import torch
 import torchvision
 from torch import nn
+from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 import csv
+import queue
 
 import Loader
 import Models
@@ -41,13 +43,13 @@ if __name__ == "__main__":
 
     clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName)
 
-    # model = torchvision.models.vit_b_16(weights='DEFAULT')
+    # model = torchvision.models.efficientnet_b0(weights='DEFAULT')
     # For the ones that use classifier layers
     # print(model.classifier[-1])
     # For the ones that use fc as the last layer
     # print(model.fc)
-    # ImageNet_transforms = torchvision.models.VGG11_Weights.DEFAULT.transforms()
-    # print(ImageNet_transforms)
+    ImageNet_transforms = torchvision.models.MaxVit_T_Weights.DEFAULT.transforms()
+    print(ImageNet_transforms)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -61,34 +63,26 @@ if __name__ == "__main__":
     # trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders,
     #                           0.001, device, tb_writer, False)
 
-    models = []
-    loaders = []
+    models = [
+        Models.AlexNet(outputNum),
+        Models.EfficientNetB0(outputNum),
+        Models.MaxVitT(outputNum),
+        Models.MNasNet05(outputNum),
+        Models.MobileNetV3L(outputNum),
+        Models.RegNetY400MF(outputNum),
+        Models.ResNet18(outputNum),
+        Models.ResNet50(outputNum),
+        Models.ResNext50(outputNum),
+        Models.ShuffleNetV205(outputNum),
+        Models.SqueezeNet10(outputNum),
+        Models.VitB16(outputNum),
+        Models.Vgg11(outputNum)
+    ]
 
-    models.append(Models.AlexNet(outputNum))
-    models.append(Models.EfficientNetB0(outputNum))
-    models.append(Models.InceptionV3(outputNum))
-    # models.append(Models.MaxVitT(outputNum))
-    # models.append(Models.MNasNet05(outputNum))
-    # models.append(Models.MobileNetV3L(outputNum))
-    # models.append(Models.RegNetY400MF(outputNum))
-    # models.append(Models.ResNet18(outputNum))
-    # models.append(Models.ResNet50(outputNum))
-    # models.append(Models.ResNext50(outputNum))
-    # models.append(Models.ShuffleNetV205(outputNum))
-    # models.append(Models.SqueezeNet10(outputNum))
-    # models.append(Models.SwinT(outputNum))
-    # models.append(Models.VitB16(outputNum))
-    # models.append(Models.Vgg(outputNum))
-
-    for model in models:
-        loaders.append(
-            Loader.create_loaders(
-                MyDataset.CustomImageDataset(cleanedFilePath, imageFolderPath, model.transform),
-                train_ratio=0.8
-            )
-        )
+    queue = queue.Queue(3)  # Max 3 threads
 
     train_length = 15
+    train_ratio = 0.8
 
     sf = 'save\\'
     lr = 0.00001
@@ -96,21 +90,24 @@ if __name__ == "__main__":
     optim = torch.optim.Adamax
     ot = '_Adamax_'
 
-    trainers = []
+    myDS = MyDataset.CustomImageDataset(cleanedFilePath, imageFolderPath)
+    train_test_set = random_split(myDS, [train_ratio, (1 - train_ratio)])
 
-    for i in range(len(models)):
-        pref = sf + models[i].name + ot + str(lr)
-        trainers.append(
-                Trainer.Trainer(models[i].model, "TorchPretrained", loaders[i], device=device,
-                                logger=None, log=False, validation=True,
-                                optimizer=optim(models[i].model.parameters(), lr=lr),
-                                loss=nn.CrossEntropyLoss(), epochs=train_length,
-                                logSave=pref + '.log',
-                                fileSave=pref + '.pth')
-            )
+    for model in models:
+        queue.put(0)
 
-    for t in trainers:
-        t.start()
+        pref = sf + model.name + ot + str(lr)
+        train_test_set[0].dataset.transform = model.transform
+        train_test_set[1].dataset.transform = model.transform
 
-    for t in trainers:
-        t.join()
+        loader = Loader.create_loaders(train_test_set)
+
+        Trainer.Trainer(model.model, "TorchPretrained", loader, device=device,
+                        logger=None, log=False, validation=True,
+                        optimizer=optim(model.model.parameters(), lr=lr),
+                        loss=nn.CrossEntropyLoss(), epochs=train_length,
+                        logSave=pref + '.log',
+                        fileSave=pref + '.pth',
+                        jobs=queue).start()
+
+    queue.join()

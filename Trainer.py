@@ -1,6 +1,7 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 import os
 import threading
+import queue
 
 import torch
 import matplotlib.pyplot as plt
@@ -10,7 +11,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 class Trainer(threading.Thread):
     def __init__(self, model, model_name, loaders, device, logger, log=True, validation=True, optimizer=None,
-                 loss=nn.CrossEntropyLoss(), epochs=10, logSave=None, fileSave=None):
+                 loss=nn.CrossEntropyLoss(), epochs=10, logSave=None, fileSave=None, jobs: queue.Queue = None):
         threading.Thread.__init__(self)
         self.model = model.to(device)
         self.model_name = model_name
@@ -24,6 +25,7 @@ class Trainer(threading.Thread):
         self.epochs = epochs
         self.logSave = logSave
         self.fileSave = fileSave
+        self.jobs = jobs
 
     def train_step(self, images, labels):
         images = images.to(self.device)
@@ -65,6 +67,8 @@ class Trainer(threading.Thread):
                 logFile.write(f'Epoch {epoch} done')
 
             torch.save(self.model.state_dict(), self.fileSave)
+            self.jobs.get()
+            self.jobs.task_done()
 
     def evaluate(self, epoch=0, mode='test', logFile=None):
         self.model.eval()

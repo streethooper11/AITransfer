@@ -32,20 +32,6 @@ class EfficientNetB0:
             ])
 
 
-class InceptionV3:
-    def __init__(self, num_classes=2):
-        self.name = 'InceptionV3'
-        self.model = torchvision.models.inception_v3(weights='DEFAULT')
-        self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(342, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(299),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
-
-
 class MaxVitT:
     def __init__(self, num_classes=2):
         self.name = 'MaxVitT'
@@ -162,24 +148,10 @@ class SqueezeNet10:
     def __init__(self, num_classes=2):
         self.name = 'SqueezeNet10'
         self.model = torchvision.models.squeezenet1_0(weights='DEFAULT')
-        self.model.classifier[-3] = nn.Linear(in_features=512, out_features=num_classes, kernel_size=1)
+        self.model.classifier[-3] = nn.Conv2d(512, num_classes, kernel_size=1)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
-
-
-class SwinT:
-    def __init__(self, num_classes=2):
-        self.name = 'SwinT'
-        self.model = torchvision.models.swin_t(weights='DEFAULT')
-        self.model.head = nn.Linear(in_features=768, out_features=num_classes, bias=True)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(232, InterpolationMode.BICUBIC),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
