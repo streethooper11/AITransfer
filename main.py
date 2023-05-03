@@ -7,7 +7,8 @@ from torch import nn
 from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 import csv
-import queue
+from multiprocessing import Queue
+import concurrent.futures
 
 import Loader
 import Models
@@ -54,15 +55,13 @@ if __name__ == "__main__":
 
     sf = 'save\\'
     lr = 0.00001
-    optim = torch.optim.Adamax
-    ot = '_Adamax_'
+    optim = torch.optim.Adam
+    ot = '_Adam_'
 
     outputNum = 2
     models = [
         Models.AlexNet(optim, ot, outputNum),
         Models.EfficientNetB0(optim, ot, outputNum),
-        Models.MaxVitT(optim, ot, outputNum),
-        Models.MNasNet05(optim, ot, outputNum),
         Models.MobileNetV3L(optim, ot, outputNum),
         Models.RegNetY400MF(optim, ot, outputNum),
         Models.ResNet18(optim, ot, outputNum),
@@ -74,9 +73,9 @@ if __name__ == "__main__":
         Models.Vgg11(optim, ot, outputNum)
     ]
 
-    max_threads = 2
-    queue = queue.Queue(max_threads)
-    train_length = 15
+    max_procs = 3
+    queue = Queue(max_procs)
+    train_length = 7
     train_ratio = 0.8
 
     myDS = MyDataset.CustomImageDataset(cleanedFilePath, imageFolderPath)
@@ -94,7 +93,7 @@ if __name__ == "__main__":
         loader = Loader.create_loaders(train_test_copy)
 
         Trainer.Trainer(model.model, "TorchPretrained", loader, device=device,
-                        logger=None, log=False, validation=True,
+                        validation=True,
                         optimizer=optim(model.model.parameters(), lr=lr),
                         loss=nn.CrossEntropyLoss(), epochs=train_length,
                         logSave=pref + '.log',

@@ -1,24 +1,22 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
+
+from multiprocessing import Process, Queue
 import os
 import threading
-import queue
 
 import torch
 import matplotlib.pyplot as plt
-from torch import nn
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
-class Trainer(threading.Thread):
-    def __init__(self, model, model_name, loaders, device, logger, log=True, validation=True, optimizer=None,
-                 loss=nn.CrossEntropyLoss(), epochs=10, logSave=None, fileSave=None, jobs: queue.Queue = None):
-        threading.Thread.__init__(self)
+class Trainer(Process):
+    def __init__(self, model, model_name, loaders, device, validation, optimizer,
+                 loss, epochs, logSave, fileSave, jobs: Queue):
+        super(Trainer, self).__init__()
         self.model = model.to(device)
         self.model_name = model_name
         self.loaders = loaders
         self.device = device
-        self.logger = logger
-        self.log = log
         self.validation = validation
         self.optimizer = optimizer
         self.criterion = loss
@@ -43,6 +41,8 @@ class Trainer(threading.Thread):
         os.makedirs(os.path.dirname(self.logSave), exist_ok=True)
         with open(self.logSave, 'w') as logFile:
             for epoch in range(self.epochs):
+                logFile.write(f'Starting epoch {epoch}:\n')
+                print(f'Starting epoch {epoch}:')
                 self.model.train()
                 total = 0
                 total_correct = 0
@@ -56,15 +56,12 @@ class Trainer(threading.Thread):
                 accuracy = total_correct / total
                 loss = total_loss / total
                 logFile.write(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})\n')
+                print(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})')
                 if self.validation:
-                    eval_loss, eval_acc = self.evaluate(epoch, mode='test', logFile=logFile)
-                    if self.log:
-                        self.logger.add_scalars('Accuracy', {"train_{mn}".format(mn=self.model_name): accuracy,
-                                                             "val_{mn}".format(mn=self.model_name): eval_acc},
-                                                epoch)
-                        self.logger.add_scalars('Loss', {"train_{mn}".format(mn=self.model_name): loss,
-                                                         "val_{mn}".format(mn=self.model_name): eval_loss}, epoch)
-                logFile.write(f'Epoch {epoch} done')
+                    self.evaluate(epoch, mode='test', logFile=logFile)
+
+                logFile.write(f'Epoch {epoch} done\n------------------------------\n')
+                print(f'Epoch {epoch} done\n------------------------------')
 
             torch.save(self.model.state_dict(), self.fileSave)
             self.jobs.get()
@@ -105,4 +102,6 @@ class Trainer(threading.Thread):
         logFile.write(f'=====Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=====\n')
         logFile.write(f'=====Precision ({precision:6.4f}) F1 Score ({f1score:6.4f})=====\n')
 
-        return loss, accuracy
+        print(f'====={mode} epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})=====')
+        print(f'=====Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=====')
+        print(f'=====Precision ({precision:6.4f}) F1 Score ({f1score:6.4f})=====')
