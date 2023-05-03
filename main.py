@@ -7,7 +7,7 @@ from torch import nn
 from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 import csv
-from multiprocessing import Queue
+from multiprocessing import JoinableQueue
 import concurrent.futures
 
 import Loader
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     sf = 'save\\'
-    lr = 0.00001
+    lr = 0.000005
     optim = torch.optim.Adam
     ot = '_Adam_'
 
@@ -73,8 +73,8 @@ if __name__ == "__main__":
         Models.Vgg11(optim, ot, outputNum)
     ]
 
-    max_procs = 3
-    queue = Queue(max_procs)
+    max_procs = 5
+    queue = JoinableQueue(max_procs)
     train_length = 7
     train_ratio = 0.8
 

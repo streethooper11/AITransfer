@@ -1,6 +1,6 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 
-from multiprocessing import Process, Queue
+from multiprocessing import Process, JoinableQueue
 import os
 import threading
 
@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 class Trainer(Process):
     def __init__(self, model, model_name, loaders, device, validation, optimizer,
-                 loss, epochs, logSave, fileSave, jobs: Queue):
+                 loss, epochs, logSave, fileSave, jobs: JoinableQueue):
         super(Trainer, self).__init__()
         self.model = model.to(device)
         self.model_name = model_name
