@@ -41,13 +41,13 @@ if __name__ == "__main__":
 
     clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName)
 
-    model = torchvision.models.maxvit_t(weights='DEFAULT')
+    # model = torchvision.models.vit_b_16(weights='DEFAULT')
     # For the ones that use classifier layers
-    print(model.classifier[-1])
+    # print(model.classifier[-1])
     # For the ones that use fc as the last layer
     # print(model.fc)
-    ImageNet_transforms = torchvision.models.MaxVit_T_Weights.DEFAULT.transforms()
-    print(ImageNet_transforms)
+    # ImageNet_transforms = torchvision.models.VGG11_Weights.DEFAULT.transforms()
+    # print(ImageNet_transforms)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -65,14 +65,20 @@ if __name__ == "__main__":
     loaders = []
 
     models.append(Models.AlexNet(outputNum))
-    models.append(Models.MobileNetV3L(outputNum))
     models.append(Models.EfficientNetB0(outputNum))
+    models.append(Models.InceptionV3(outputNum))
     # models.append(Models.MaxVitT(outputNum))
+    # models.append(Models.MNasNet05(outputNum))
+    # models.append(Models.MobileNetV3L(outputNum))
+    # models.append(Models.RegNetY400MF(outputNum))
     # models.append(Models.ResNet18(outputNum))
     # models.append(Models.ResNet50(outputNum))
-    # models.append(Models.RegNetY400MF(outputNum))
-    # models.append(Models.MNasNet05(outputNum))
-    # models.append(Models.InceptionV3(outputNum))
+    # models.append(Models.ResNext50(outputNum))
+    # models.append(Models.ShuffleNetV205(outputNum))
+    # models.append(Models.SqueezeNet10(outputNum))
+    # models.append(Models.SwinT(outputNum))
+    # models.append(Models.VitB16(outputNum))
+    # models.append(Models.Vgg(outputNum))
 
     for model in models:
         loaders.append(

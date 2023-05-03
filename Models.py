@@ -18,20 +18,6 @@ class AlexNet:
             ])
 
 
-class MobileNetV3L:
-    def __init__(self, num_classes=2):
-        self.name = 'MobileNetV3L'
-        self.model = torchvision.models.mobilenet_v3_large(weights='DEFAULT')
-        self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(232, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
-
-
 class EfficientNetB0:
     def __init__(self, num_classes=2):
         self.name = 'EfficientNetB0'
@@ -46,14 +32,70 @@ class EfficientNetB0:
             ])
 
 
+class InceptionV3:
+    def __init__(self, num_classes=2):
+        self.name = 'InceptionV3'
+        self.model = torchvision.models.inception_v3(weights='DEFAULT')
+        self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(342, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(299),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
 class MaxVitT:
     def __init__(self, num_classes=2):
-        self.name = 'MaxvitT'
+        self.name = 'MaxVitT'
         self.model = torchvision.models.maxvit_t(weights='DEFAULT')
         self.model.classifier[-1] = nn.Linear(in_features=512, out_features=num_classes, bias=False)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(224, InterpolationMode.BICUBIC),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class MNasNet05:
+    def __init__(self, num_classes=2):
+        self.name = 'MNasNet05'
+        self.model = torchvision.models.mnasnet0_5(weights='DEFAULT')
+        self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(256, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class MobileNetV3L:
+    def __init__(self, num_classes=2):
+        self.name = 'MobileNetV3L'
+        self.model = torchvision.models.mobilenet_v3_large(weights='DEFAULT')
+        self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(232, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class RegNetY400MF:
+    def __init__(self, num_classes=2):
+        self.name = 'RegNetY400MF'
+        self.model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
+        self.model.fc = nn.Linear(in_features=440, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(232, InterpolationMode.BILINEAR),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -88,11 +130,11 @@ class ResNet50:
             ])
 
 
-class RegNetY400MF:
+class ResNext50:
     def __init__(self, num_classes=2):
-        self.name = 'RegNetY400MF'
-        self.model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
-        self.model.fc = nn.Linear(in_features=440, out_features=num_classes, bias=True)
+        self.name = 'ResNext50'
+        self.model = torchvision.models.resnext50_32x4d(weights='DEFAULT')
+        self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(232, InterpolationMode.BILINEAR),
@@ -102,11 +144,11 @@ class RegNetY400MF:
             ])
 
 
-class MNasNet05:
+class ShuffleNetV205:
     def __init__(self, num_classes=2):
-        self.name = 'MNasNet05'
-        self.model = torchvision.models.mnasnet0_5(weights='DEFAULT')
-        self.model.fc = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.name = 'ShuffleNetV205'
+        self.model = torchvision.models.shufflenet_v2_x0_5(weights='DEFAULT')
+        self.model.fc = nn.Linear(in_features=1024, out_features=num_classes, bias=True)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
@@ -116,15 +158,57 @@ class MNasNet05:
             ])
 
 
-class InceptionV3:
+class SqueezeNet10:
     def __init__(self, num_classes=2):
-        self.name = 'InceptionV3'
-        self.model = torchvision.models.inception_v3(weights='DEFAULT')
-        self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
+        self.name = 'SqueezeNet10'
+        self.model = torchvision.models.squeezenet1_0(weights='DEFAULT')
+        self.model.classifier[-3] = nn.Linear(in_features=512, out_features=num_classes, kernel_size=1)
         self.transform = transforms.Compose(
             [
-                transforms.Resize(342, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(299),
+                transforms.Resize(256, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class SwinT:
+    def __init__(self, num_classes=2):
+        self.name = 'SwinT'
+        self.model = torchvision.models.swin_t(weights='DEFAULT')
+        self.model.head = nn.Linear(in_features=768, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(232, InterpolationMode.BICUBIC),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class VitB16:
+    def __init__(self, num_classes=2):
+        self.name = 'VitB16'
+        self.model = torchvision.models.vit_b_16(weights='DEFAULT')
+        self.model.heads[-1] = nn.Linear(in_features=768, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(256, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class Vgg11:
+    def __init__(self, num_classes=2):
+        self.name = 'Vgg11'
+        self.model = torchvision.models.vgg11(weights='DEFAULT')
+        self.model.classifier[-1] = nn.Linear(in_features=4096, out_features=num_classes, bias=True)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(256, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
