@@ -1,24 +1,20 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 
-import os
-from contextlib import redirect_stdout
-
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from torchvision import transforms
-import torchvision
 import csv
 
 import Loader
+import Models
 import MyDataset
 import Trainer
 from DiseaseFlag import Diseases
 
 
-def clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName):
-    with open(originalFilePath, newline='') as csvreadfile:
-        with open(cleanedFilePath, 'w', newline='') as csvwritefile:
+def clean_then_save_csv(origFilePath, cleanFilePath, outputColName):
+    with open(origFilePath, newline='') as csvreadfile:
+        with open(cleanFilePath, 'w', newline='') as csvwritefile:
             csv_read = csv.reader(csvreadfile, delimiter=',')
             csv_write = csv.writer(csvwritefile, delimiter=',')
             firstrow = True
@@ -30,7 +26,7 @@ def clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName):
                         csv_write.writerow([row[0], 1])
                 else:
                     firstrow = False
-                    csv_write.writerow(['Image Index', outputColumnName])
+                    csv_write.writerow(['Image Index', outputColName])
 
 
 if __name__ == "__main__":
@@ -40,36 +36,37 @@ if __name__ == "__main__":
 
     outputColumnName = 'Disease_numeric'
 
+    outputNum = 2
+
     clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName)
 
-    models = []
-    for i in range(3):
-        models.append(torchvision.models.alexnet(weights='DEFAULT'))
-
+    #    model = torchvision.models.convnext_small(weights='DEFAULT')
     # For the ones that use classifier layers
-    print(models[0].classifier[-1])
+    #    print(model.classifier[-1])
     # For the ones that use fc as the last layer
     # print(models[0].fc)
+    #    ImageNet_transforms = torchvision.models.ConvNeXt_Small_Weights.DEFAULT.transforms()
+    #    print(ImageNet_transforms)
 
-    ImageNet_transforms = torchvision.models.AlexNet_Weights.DEFAULT.transforms()
-    print(ImageNet_transforms)
+    alexModel = Models.AlexNet(outputNum)
+    mobileV3Model = Models.MobileNetV3L(outputNum)
+
+    models = []
+    loaders = []
+
+    models.append(Models.AlexNet(outputNum))
+    models.append(Models.MobileNetV3L(outputNum))
+    models.append(Models.EfficientNetB0(outputNum))
+    models.append(Models.ResNet18(outputNum))
+    models.append(Models.ResNet50(outputNum))
 
     for model in models:
-        # For the ones that use classifier layers
-        model.classifier[-1] = nn.Linear(in_features=4096, out_features=2, bias=True)
-        # For the ones that use fc as the last layer
-        # model..fc = nn.Linear(in_features=1024, out_features=2, bias=True)  # binary output
-
-    transform = transforms.Compose(
-        [
-            transforms.Resize(256),  # Default is InterpolationMode.BILINEAR.
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ])
-
-    mySet = MyDataset.CustomImageDataset(cleanedFilePath, imageFolderPath, transform)
-    loaders = Loader.create_loaders(mySet, train_ratio=0.8)
+        loaders.append(
+                Loader.create_loaders(
+                    MyDataset.CustomImageDataset(cleanedFilePath, imageFolderPath, model.transform),
+                    train_ratio=0.8
+                )
+            )
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -83,40 +80,29 @@ if __name__ == "__main__":
     # trainer = Trainer.Trainer(pretrained_torch_model, "TorchPretrained", loaders,
     #                           0.001, device, tb_writer, False)
 
-    train_length = 7
+    train_length = 15
 
-    log_name = 'save\\AlexNet_Adam_0.00001.log'
-    state_name = 'save\\AlexNet_Adam_0.00001.pth'
+    sf = 'save\\'
+    lr = 0.00001
 
-    # Add momentum=0.9 for optimizer when using SGD for optimizer
-    trainer1 = Trainer(models[0], "TorchPretrained", loaders, device=device,
-                       logger=None, log=False, validation=True,
-                       optimizer=torch.optim.Adam(models[0].parameters(), lr=0.00001),
-                       loss=nn.CrossEntropyLoss(), epochs=train_length, logSave=log_name,
-                       fileSave=state_name)
+    optim = torch.optim.Adamax
+    ot = '_Adamax_'
 
-    log_name = 'save\\AlexNet_Adam_0.00002.log'
-    state_name = 'save\\AlexNet_Adam_0.00002.pth'
+    trainers = []
 
-    trainer2 = Trainer(models[1], "TorchPretrained", loaders, device=device,
-                       logger=None, log=False, validation=True,
-                       optimizer=torch.optim.Adam(models[1].parameters(), lr=0.00002),
-                       loss=nn.CrossEntropyLoss(), epochs=train_length, logSave=log_name,
-                       fileSave=state_name)
+    for i in range(len(models)):
+        pref = sf + models[i].name + ot + str(lr)
+        trainers.append(
+                Trainer.Trainer(models[i].model, "TorchPretrained", loaders[i], device=device,
+                                logger=None, log=False, validation=True,
+                                optimizer=optim(models[i].model.parameters(), lr=lr),
+                                loss=nn.CrossEntropyLoss(), epochs=train_length,
+                                logSave=pref + '.log',
+                                fileSave=pref + '.pth')
+            )
 
-    log_name = 'save\\AlexNet_Adam_0.00005.log'
-    state_name = 'save\\AlexNet_Adam_0.00005.pth'
+    for t in trainers:
+        t.start()
 
-    trainer3 = Trainer(models[2], "TorchPretrained", loaders, device=device,
-                       logger=None, log=False, validation=True,
-                       optimizer=torch.optim.Adam(models[2].parameters(), lr=0.00005),
-                       loss=nn.CrossEntropyLoss(), epochs=train_length, logSave=log_name,
-                       fileSave=state_name)
-
-    trainer1.start()
-    trainer2.start()
-    trainer3.start()
-
-    trainers = [trainer1, trainer2, trainer3]
     for t in trainers:
         t.join()

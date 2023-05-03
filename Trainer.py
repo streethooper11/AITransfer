@@ -1,7 +1,6 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 import os
 import threading
-from contextlib import redirect_stdout
 
 import torch
 import matplotlib.pyplot as plt
@@ -41,34 +40,33 @@ class Trainer(threading.Thread):
     def run(self):
         os.makedirs(os.path.dirname(self.logSave), exist_ok=True)
         with open(self.logSave, 'w') as logFile:
-            with redirect_stdout(logFile):
-                for epoch in range(self.epochs):
-                    self.model.train()
-                    total = 0
-                    total_correct = 0
-                    total_loss = 0
-                    for i, (images, labels) in enumerate(self.loaders['train']):
-                        predictions, labels, loss = self.train_step(images, labels)
-                        total += images.size(0)
-                        total_correct += (predictions == labels).sum()
-                        total_loss += loss.item() * images.size(0)
+            for epoch in range(self.epochs):
+                self.model.train()
+                total = 0
+                total_correct = 0
+                total_loss = 0
+                for i, (images, labels) in enumerate(self.loaders['train']):
+                    predictions, labels, loss = self.train_step(images, labels)
+                    total += images.size(0)
+                    total_correct += (predictions == labels).sum()
+                    total_loss += loss.item() * images.size(0)
 
-                    accuracy = total_correct / total
-                    loss = total_loss / total
-                    print(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})')
-                    if self.validation:
-                        eval_loss, eval_acc = self.evaluate(epoch, mode='test')
-                        if self.log:
-                            self.logger.add_scalars('Accuracy', {"train_{mn}".format(mn=self.model_name): accuracy,
-                                                                 "val_{mn}".format(mn=self.model_name): eval_acc},
-                                                    epoch)
-                            self.logger.add_scalars('Loss', {"train_{mn}".format(mn=self.model_name): loss,
-                                                             "val_{mn}".format(mn=self.model_name): eval_loss}, epoch)
-                    print(f'Epoch {epoch} done')
+                accuracy = total_correct / total
+                loss = total_loss / total
+                logFile.write(f'Train epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})\n')
+                if self.validation:
+                    eval_loss, eval_acc = self.evaluate(epoch, mode='test', logFile=logFile)
+                    if self.log:
+                        self.logger.add_scalars('Accuracy', {"train_{mn}".format(mn=self.model_name): accuracy,
+                                                             "val_{mn}".format(mn=self.model_name): eval_acc},
+                                                epoch)
+                        self.logger.add_scalars('Loss', {"train_{mn}".format(mn=self.model_name): loss,
+                                                         "val_{mn}".format(mn=self.model_name): eval_loss}, epoch)
+                logFile.write(f'Epoch {epoch} done')
 
             torch.save(self.model.state_dict(), self.fileSave)
 
-    def evaluate(self, epoch=0, mode='test'):
+    def evaluate(self, epoch=0, mode='test', logFile=None):
         self.model.eval()
         total_loss = 0
         total = 0
@@ -99,8 +97,8 @@ class Trainer(threading.Thread):
         #        ConfusionMatrixDisplay(cm).plot()
         #        plt.show()
 
-        print(f'====={mode} epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})=====')
-        print(f'=====Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=====')
-        print(f'=====Precision ({precision:6.4f}) F1 Score ({f1score:6.4f})=====')
+        logFile.write(f'====={mode} epoch {epoch}: Loss({loss:6.4f}) Accuracy ({accuracy:6.4f})=====\n')
+        logFile.write(f'=====Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=====\n')
+        logFile.write(f'=====Precision ({precision:6.4f}) F1 Score ({f1score:6.4f})=====\n')
 
         return loss, accuracy
