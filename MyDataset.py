@@ -7,10 +7,10 @@ from PIL import Image
 
 
 class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None):
+    def __init__(self, annotations_file, img_dir):
         self.img_labels = pd.read_csv(annotations_file)
         self.img_dir = img_dir
-        self.transform = transform
+        self.transform = None
 
     def __len__(self):
         return len(self.img_labels)
