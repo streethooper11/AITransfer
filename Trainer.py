@@ -2,7 +2,6 @@
 
 from multiprocessing import Process, JoinableQueue
 import os
-import threading
 
 import torch
 import matplotlib.pyplot as plt
@@ -63,9 +62,9 @@ class Trainer(Process):
                 logFile.write(f'Epoch {epoch} done\n------------------------------\n')
                 print(f'Epoch {epoch} done\n------------------------------')
 
-            torch.save(self.model.state_dict(), self.fileSave)
-            self.jobs.get()
-            self.jobs.task_done()
+            # torch.save(self.model.state_dict(), self.fileSave)
+        self.jobs.get()
+        self.jobs.task_done()
 
     def evaluate(self, epoch=0, mode='test', logFile=None):
         self.model.eval()

@@ -1,7 +1,7 @@
 # Based on create_loaders from https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 
 
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 
 
 def create_loaders(train_test_set, batch_size=32, workers=2):
