@@ -5,22 +5,22 @@ from torchvision.transforms import InterpolationMode
 
 
 class GenericModel:
-    def __init__(self, model):
-        self.model = model
-        self.optimwithstr = [
-#            (optim.Adam(model.parameters(), lr=0.000001), '_Adam_', '0.000001'),
-            (optim.Adagrad(model.parameters(), lr=0.000002), '_Adagrad_', '0.000002'),
-            (optim.Adamax(model.parameters(), lr=0.000002), '_Adamax_', '0.000002'),
-            (optim.RMSprop(model.parameters(), lr=0.000002, momentum=0.9), '_RMSProp_', '0.000002'),
-            (optim.SGD(model.parameters(), lr=0.000002, momentum=0.9), '_SGD_', '0.000002'),
-        ]
+    def __init__(self, name, model, opt):
+        self.name = name
+        self.model = model(weights='DEFAULT')
+        if opt[0] is optim.RMSprop:
+            self.opt = (opt[0](self.model.parameters(), lr=float(opt[2]), weight_decay=opt[3], momentum=0),
+                        opt[1], opt[2], opt[3])
+        else:
+            self.opt = (opt[0](self.model.parameters(), lr=float(opt[2]), weight_decay=opt[3]),
+                        opt[1], opt[2], opt[3], opt[4])
 
 
 class AlexNet(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'AlexNet'
-        super().__init__(torchvision.models.alexnet(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('AlexNet', torchvision.models.alexnet, opt)
         self.model.classifier[-1] = nn.Linear(in_features=4096, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
@@ -31,10 +31,10 @@ class AlexNet(GenericModel):
 
 
 class EfficientNetB0(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'EfficientNetB0'
-        super().__init__(torchvision.models.efficientnet_b0(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('EfficientNetB0', torchvision.models.efficientnet_b0, opt)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BICUBIC),
@@ -45,10 +45,10 @@ class EfficientNetB0(GenericModel):
 
 
 class MaxVitT(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'MaxVitT'
-        super().__init__(torchvision.models.maxvit_t(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('MaxVitT', torchvision.models.maxvit_t, opt)
         self.model.classifier[-1] = nn.Linear(in_features=512, out_features=num_classes, bias=False)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(224, InterpolationMode.BICUBIC),
@@ -59,10 +59,10 @@ class MaxVitT(GenericModel):
 
 
 class MNasNet05(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'MNasNet05'
-        super().__init__(torchvision.models.mnasnet0_5(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('MNasNet05', torchvision.models.mnasnet0_5, opt)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
@@ -72,11 +72,25 @@ class MNasNet05(GenericModel):
             ])
 
 
-class MobileNetV3L(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'MobileNetV3L'
-        super().__init__(torchvision.models.mobilenet_v3_large(weights='DEFAULT'))
+class MobileNetV2(GenericModel):
+    def __init__(self, num_classes, device, opt):
+        super().__init__('MobileNetV2', torchvision.models.mobilenet_v2, opt)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.model.to(device)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize(232, InterpolationMode.BILINEAR),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+
+
+class MobileNetV3L(GenericModel):
+    def __init__(self, num_classes, device, opt):
+        super().__init__('MobileNetV3L', torchvision.models.mobilenet_v3_large, opt)
+        self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(232, InterpolationMode.BILINEAR),
@@ -87,10 +101,10 @@ class MobileNetV3L(GenericModel):
 
 
 class RegNetY400MF(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'RegNetY400MF'
-        super().__init__(torchvision.models.regnet_y_400mf(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('RegNetY400MF', torchvision.models.regnet_y_400mf, opt)
         self.model.fc = nn.Linear(in_features=440, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(232, InterpolationMode.BILINEAR),
@@ -101,10 +115,10 @@ class RegNetY400MF(GenericModel):
 
 
 class ResNet18(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'ResNet18'
-        super().__init__(torchvision.models.resnet18(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('ResNet18', torchvision.models.resnet18, opt)
         self.model.fc = nn.Linear(in_features=512, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
@@ -115,10 +129,10 @@ class ResNet18(GenericModel):
 
 
 class ResNet50(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'ResNet50'
-        super().__init__(torchvision.models.resnet50(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('ResNet50', torchvision.models.resnet50, opt)
         self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(232, InterpolationMode.BILINEAR),
@@ -129,10 +143,10 @@ class ResNet50(GenericModel):
 
 
 class ResNext50(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'ResNext50'
-        super().__init__(torchvision.models.resnext50_32x4d(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('ResNext50', torchvision.models.resnext50_32x4d, opt)
         self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(232, InterpolationMode.BILINEAR),
@@ -143,10 +157,10 @@ class ResNext50(GenericModel):
 
 
 class ShuffleNetV205(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'ShuffleNetV205'
-        super().__init__(torchvision.models.shufflenet_v2_x0_5(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('ShuffleNetV205', torchvision.models.shufflenet_v2_x0_5, opt)
         self.model.fc = nn.Linear(in_features=1024, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
@@ -157,10 +171,10 @@ class ShuffleNetV205(GenericModel):
 
 
 class SqueezeNet10(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'SqueezeNet10'
-        super().__init__(torchvision.models.squeezenet1_0(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('SqueezeNet10', torchvision.models.squeezenet1_0, opt)
         self.model.classifier[-3] = nn.Conv2d(512, num_classes, kernel_size=1)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
@@ -171,10 +185,10 @@ class SqueezeNet10(GenericModel):
 
 
 class VitB16(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'VitB16'
-        super().__init__(torchvision.models.vit_b_16(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('VitB16', torchvision.models.vit_b_16, opt)
         self.model.heads[-1] = nn.Linear(in_features=768, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),
@@ -185,10 +199,10 @@ class VitB16(GenericModel):
 
 
 class Vgg11(GenericModel):
-    def __init__(self, num_classes=2):
-        self.name = 'Vgg11'
-        super().__init__(torchvision.models.vgg11(weights='DEFAULT'))
+    def __init__(self, num_classes, device, opt):
+        super().__init__('Vgg11', torchvision.models.vgg11, opt)
         self.model.classifier[-1] = nn.Linear(in_features=4096, out_features=num_classes, bias=True)
+        self.model.to(device)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(256, InterpolationMode.BILINEAR),

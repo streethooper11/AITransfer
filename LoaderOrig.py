@@ -4,10 +4,10 @@
 from torch.utils.data import DataLoader
 
 
-def create_loaders(train_set, test_set, batch_size=32, workers=2):
-    trainloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=workers,
+def create_loaders(train_test_set, batch_size=32, workers=2):
+    trainloader = DataLoader(train_test_set[0], batch_size=batch_size, shuffle=True, num_workers=workers,
                              drop_last=True)
-    testloader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=workers,
+    testloader = DataLoader(train_test_set[1], batch_size=batch_size, shuffle=False, num_workers=workers,
                             drop_last=False)
 
     loaders = {
