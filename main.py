@@ -162,32 +162,43 @@ if __name__ == "__main__":
     ]
 
     optims = [
-        (torch.optim.Adam, '_Adam_', '0.00001', 0.0, 15),
-#        (torch.optim.Adam, '_Adam_', '0.00002', 0.0, 15),
-#        (torch.optim.Adam, '_Adam_', '0.00003', 0.0, 15),
-#        (torch.optim.Adam, '_Adam_', '0.00004', 0.0, 15),
-#        (torch.optim.Adam, '_Adam_', '0.00005', 0.0, 15),
-#        (torch.optim.Adam, '_Adam_', '0.0001', 0.0, 15),
+        (torch.optim.Adam, '_Adam_', '0.00001', 0.0, 25),
+        (torch.optim.Adam, '_Adam_', '0.00002', 0.0, 25),
+        (torch.optim.Adam, '_Adam_', '0.00003', 0.0, 25),
+        (torch.optim.Adam, '_Adam_', '0.00004', 0.0, 25),
+        (torch.optim.Adam, '_Adam_', '0.00005', 0.0, 25),
+        (torch.optim.Adam, '_Adam_', '0.0001', 0.0, 25),
     ]
-
-    outputColumnName = 'Disease_numeric'
-
-#    imageFolderPath = 'set\\sample\\images\\'
-#    originalFilePath = 'set\\Data_Entry_2017.csv'
-#    sf = 'save\\set2\\'
-#    cleanedFilePath = sf + 'Entry_cleaned.csv'
-#    clean_then_save_csv(originalFilePath, sf, outputColumnName, imageFolderPath)
-#    training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf)
 
     imageFolderPath = 'set\\sample\\images\\'
     originalFilePath = 'set\\sample_labels.csv'
     sf = 'save\\multiclass\\sample\\'
     os.makedirs(sf, exist_ok=True)
-
     cleanedFilePath = sf + 'sample_cleaned.csv'
+    multiOutput = 14
+    #    outputColumnName = 'Disease_numeric'
+
+
 #    clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName, imageFolderPath)
 #    training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf)
 
-    multiOutput = 14
+    clean_then_save_csv_multi(originalFilePath, cleanedFilePath, imageFolderPath, multiOutput)
+    training_stage_multi(cleanedFilePath, imageFolderPath, modeltypes, optims, sf, multiOutput)
+
+    imageFolderPath = 'set\\set2\\images\\'
+    originalFilePath = 'set\\Data_Entry_2017.csv'
+    sf = 'save\\multiclass\\set2\\'
+    os.makedirs(sf, exist_ok=True)
+    cleanedFilePath = sf + 'Entry_cleaned.csv'
+
+    clean_then_save_csv_multi(originalFilePath, cleanedFilePath, imageFolderPath, multiOutput)
+    training_stage_multi(cleanedFilePath, imageFolderPath, modeltypes, optims, sf, multiOutput)
+
+    imageFolderPath = 'set\\set12\\images\\'
+    originalFilePath = 'set\\Data_Entry_2017.csv'
+    sf = 'save\\multiclass\\set12\\'
+    os.makedirs(sf, exist_ok=True)
+    cleanedFilePath = sf + 'Entry_cleaned.csv'
+
     clean_then_save_csv_multi(originalFilePath, cleanedFilePath, imageFolderPath, multiOutput)
     training_stage_multi(cleanedFilePath, imageFolderPath, modeltypes, optims, sf, multiOutput)
