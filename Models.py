@@ -83,7 +83,7 @@ class MobileNetV2(GenericModel):
     def __init__(self, num_classes, device, opt):
         super().__init__('MobileNetV2', torchvision.models.mobilenet_v2)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
-        # self.model.to(device)
+        self.model.to(device)
         self.defineOpt(opt)
         self.transform = transforms.Compose(
             [

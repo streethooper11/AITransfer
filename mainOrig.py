@@ -13,7 +13,7 @@ import Loader
 import Models
 import MyDatasetOrig
 import Trainer
-from DiseaseFlag import Diseases
+from DiseaseEnum import Diseases
 
 
 def clean_then_save_csv(origFilePath, cleanFilePath, outputColName):
