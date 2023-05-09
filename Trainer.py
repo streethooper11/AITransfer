@@ -1,6 +1,5 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 
-from multiprocessing import Process, JoinableQueue
 import os
 
 import torch
@@ -8,11 +7,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
-class Trainer(Process):
+class Trainer():
     def __init__(self, model, model_name, loaders, device, validation, optimizer,
-                 loss, epochs, logSave, fileSave, jobs: JoinableQueue):
-        super(Trainer, self).__init__()
-        self.model = model
+                 loss, epochs, logSave, fileSave):
+        self.model = model.to(device)
         self.model_name = model_name
         self.loaders = loaders
         self.device = device
@@ -22,7 +20,6 @@ class Trainer(Process):
         self.epochs = epochs
         self.logSave = logSave
         self.fileSave = fileSave
-        self.jobs = jobs
 
     def train_step(self, images, labels):
         images = images.to(self.device)
@@ -36,7 +33,7 @@ class Trainer(Process):
 
         return predictions, labels, loss
 
-    def run(self):
+    def train(self):
         os.makedirs(os.path.dirname(self.logSave), exist_ok=True)
         with open(self.logSave, 'w') as logFile:
             for epoch in range(self.epochs):
@@ -63,8 +60,6 @@ class Trainer(Process):
                 print(f'Epoch {epoch} done\n------------------------------')
 
             # torch.save(self.model.state_dict(), self.fileSave)
-        self.jobs.get()
-        self.jobs.task_done()
 
     def evaluate(self, epoch=0, mode='test', logFile=None):
         self.model.eval()
