@@ -15,11 +15,10 @@ import Trainer
 from DiseaseEnum import Disease
 
 
-def training_stage_multi(dataPath, imagePath, modelts, opts, savefolder, train_data_ratio=0.8):
+def training_stage_multi(dataPath, imagePath, modelts, opts, savefolder, outputNum, train_data_ratio=0.8):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = torch.device('cpu')
 
-    outputNum = 15
     models = []
     for modelf in modelts:
         for optim in opts:
@@ -51,6 +50,7 @@ def training_stage_multi(dataPath, imagePath, modelts, opts, savefolder, train_d
             epochs=model.opt[4],
             logSave=pref + '.log',
             fileSave=pref + '.pth',
+            numoutputs=outputNum
         )
 
         trainer.train()
@@ -97,7 +97,7 @@ def training_stage(dataPath, imagePath, modelts, opts, savefolder, train_data_ra
         trainer.train()
 
 
-def clean_then_save_csv_multi(origFilePath, cleanFilePath, imgPath):
+def clean_then_save_csv_multi(origFilePath, cleanFilePath, imgPath, outputNum):
     with open(origFilePath, newline='') as csvreadfile:
         with open(cleanFilePath, 'w', newline='') as csvwritefile:
             csv_read = csv.reader(csvreadfile, delimiter=',')
@@ -107,9 +107,8 @@ def clean_then_save_csv_multi(origFilePath, cleanFilePath, imgPath):
                 if firstrow is False:
                     img_path = os.path.join(imgPath, row[0])
                     if os.path.exists(img_path):
-                        diseases = [0 for n in range(15)]
+                        diseases = [0 for n in range(outputNum)]
                         if row[1] == "No Finding":
-                            diseases[Disease.NoDisease.value] = 1
                             values = [row[0]]
                             values.extend(diseases)
                             csv_write.writerow(values)
@@ -188,5 +187,7 @@ if __name__ == "__main__":
     cleanedFilePath = sf + 'sample_cleaned.csv'
 #    clean_then_save_csv(originalFilePath, cleanedFilePath, outputColumnName, imageFolderPath)
 #    training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf)
-    clean_then_save_csv_multi(originalFilePath, cleanedFilePath, imageFolderPath)
-    training_stage_multi(cleanedFilePath, imageFolderPath, modeltypes, optims, sf)
+
+    multiOutput = 14
+    clean_then_save_csv_multi(originalFilePath, cleanedFilePath, imageFolderPath, multiOutput)
+    training_stage_multi(cleanedFilePath, imageFolderPath, modeltypes, optims, sf, multiOutput)
