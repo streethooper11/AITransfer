@@ -17,3 +17,4 @@ class Disease(Enum):
     Pleural_Thickening = 11
     Pneumonia = 12
     Pneumothorax = 13
+    HasDisease = 99
