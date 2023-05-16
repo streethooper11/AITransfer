@@ -12,7 +12,7 @@ from DiseaseEnum import Disease
 
 class TrainerMulti:
     def __init__(self, model, model_name, loaders, device, validation, optimizer,
-                 loss, epochs, pref, suffix, numoutputs, listtops=5):
+                 loss, epochs, pref, numoutputs, listtops=5):
         self.model = model
         self.model_name = model_name
         self.loaders = loaders
@@ -21,8 +21,9 @@ class TrainerMulti:
         self.optimizer = optimizer
         self.criterion = loss
         self.epochs = epochs
-        self.pref = pref
-        self.suffix = suffix
+        self.logSave = pref + '.log'
+        self.fileSave = pref + '_epoch'
+        self.matrixSave = pref + '_matrix'
         self.numoutputs = numoutputs
         self.listtops = listtops
 
@@ -41,10 +42,9 @@ class TrainerMulti:
         return outputs, labels, loss
 
     def train(self):
-        logsave = self.pref + 'logs\\' + self.suffix + '.log'
-        os.makedirs(os.path.dirname(logsave), exist_ok=True)
+        os.makedirs(os.path.dirname(self.logSave), exist_ok=True)
         topmodels = []
-        with open(logsave, 'w') as logFile:
+        with open(self.logSave, 'w') as logFile:
             for epoch in range(self.epochs):
                 logFile.write(f'Starting epoch {epoch}:\n')
                 print(f'Starting epoch {epoch}:')
@@ -80,7 +80,7 @@ class TrainerMulti:
                 axes[-1, -2] = None
                 axes[-1, -1].remove()
                 axes[-1, -1] = None
-                cmdname = self.pref + 'matrices\\' + self.suffix + '_train_epoch' + str(epoch) + '.png'
+                cmdname = self.matrixSave + '_train_epoch' + str(epoch) + '_all.png'
                 plt.savefig(cmdname)
                 plt.close()
 
@@ -94,8 +94,7 @@ class TrainerMulti:
                 logFile.write(f'Epoch {epoch} done\n------------------------------\n')
                 print(f'Epoch {epoch} done\n------------------------------')
 
-                modelsavename = self.pref + 'models\\' + \
-                                'f1_' + str(f1score) + self.suffix + '_epoch' + str(epoch) + '.pth'
+                modelsavename = self.fileSave + str(epoch) + '_f1_' + str(f1score) + '.pth'
                 topmodels.append((modelsavename, f1score))
                 if len(topmodels) <= self.listtops:
                     torch.save(self.model.state_dict(), modelsavename)
@@ -160,7 +159,7 @@ class TrainerMulti:
         axes[-1, -2] = None
         axes[-1, -1].remove()
         axes[-1, -1] = None
-        cmdname = self.pref + 'matrices\\' + self.suffix + '_validation_epoch' + str(epoch) + '.png'
+        cmdname = self.matrixSave + '_validation_epoch' + str(epoch) + '_all.png'
         plt.savefig(cmdname)
         plt.close()
 

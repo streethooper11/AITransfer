@@ -4,15 +4,23 @@
 from torch.utils.data import DataLoader
 
 
-def create_loaders(train_set, test_set, batch_size=32, workers=2):
-    trainloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=workers,
-                             drop_last=True)
-    testloader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=workers,
-                            drop_last=False)
+def create_loaders(train_set=None, val_set=None, test_set=None, batch_size=32, workers=2, testing=False):
+    if testing is True:
+        testloader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=workers,
+                                drop_last=False)
 
-    loaders = {
-        'train': trainloader,
-        'test': testloader
-    }
+        loaders = {
+            'test': testloader
+        }
+    else:
+        trainloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=workers,
+                                 drop_last=True)
+        valloader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=workers,
+                               drop_last=False)
+
+        loaders = {
+            'train': trainloader,
+            'test': valloader
+        }
 
     return loaders

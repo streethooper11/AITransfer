@@ -11,9 +11,9 @@ class GenericModel:
         self.opt = None
 
     def defineOpt(self, opt):
-        if opt[0] is optim.RMSprop:
+        if (opt[0] is optim.SGD) or (opt[0] is optim.RMSprop):
             self.opt = (opt[0](self.model.parameters(), lr=float(opt[2]), weight_decay=opt[3], momentum=0),
-                        opt[1], opt[2], opt[3])
+                        opt[1], opt[2], opt[3], opt[4])
         else:
             self.opt = (opt[0](self.model.parameters(), lr=float(opt[2]), weight_decay=opt[3]),
                         opt[1], opt[2], opt[3], opt[4])
@@ -82,15 +82,15 @@ class MNasNet05(GenericModel):
 class MobileNetV2(GenericModel):
     def __init__(self, num_classes, device, opt):
         super().__init__('MobileNetV2', torchvision.models.mobilenet_v2)
-        self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
+        self.model.classifier[-1] = nn.Linear(in_features=self.model.last_channel, out_features=num_classes)
         self.model.to(device)
         self.defineOpt(opt)
         self.transform = transforms.Compose(
             [
                 transforms.Resize(232, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
+                transforms.RandomCrop(224),
                 transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
 
 
