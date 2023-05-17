@@ -44,12 +44,12 @@ def clean_then_save_csv(origFilePath, cleanFilePath, imgPath):
 
 if __name__ == "__main__":
     # variables you can change
-    setname = 'set1-3'  # choose the set to work on
+    setname = 'set3'  # choose the set to work on
     modelfolder = 'save\\' + setname + '\\multiclass\\models\\'
-#    modelpath = modelfolder + 'f1_0.2942MobileNetV2_Adam_0.0002_decay_0.0_trainratio_0.8_epoch25.pth'
-    modelpath = modelfolder + 'f1_0.2898MobileNetV2_Adam_0.0004_decay_0.0_trainratio_0.8_epoch23.pth'
+#    modelpath = modelfolder + 'f1_0.2946MobileNetV2_Adam_0.0001_decay_0.0_trainratio_0.8_epoch19.pth'
+    modelpath = modelfolder + 'f1_0.2932MobileNetV2_Adam_0.0003_decay_0.0_trainratio_0.8_epoch36.pth'
 
-    learning_rate = '0.0004'
+    learning_rate = '0.0003'
 
     originalFilePath = 'set\\Data_Entry_2017.csv'
 
@@ -63,10 +63,10 @@ if __name__ == "__main__":
     cleanedFilePath = sf + 'Entry_cleaned.csv'
     clean_then_save_csv(originalFilePath, cleanedFilePath, imageFolderPath)
 
-    model = Models.MobileNetV2(14, 'cuda', (torch.optim.Adam, '_Adam_', learning_rate, 0.0, 10))
-    model.model.load_state_dict(torch.load(modelpath))
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    model = Models.MobileNetV2(14, device, (torch.optim.Adam, '_Adam_', learning_rate, 0.0, 10))
+    model.model.load_state_dict(torch.load(modelpath))
 
     df = pd.read_csv(cleanedFilePath)
     x = df.iloc[:, 0:-outputNum]
