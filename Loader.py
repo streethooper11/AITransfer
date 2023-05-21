@@ -4,7 +4,7 @@
 from torch.utils.data import DataLoader
 
 
-def create_loaders(train_set=None, val_set=None, test_set=None, batch_size=32, workers=2, testing=False):
+def create_loaders(train_set=None, val_set=None, test_set=None, batch_size=64, workers=4, testing=False):
     if testing is True:
         testloader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=workers,
                                 drop_last=False)

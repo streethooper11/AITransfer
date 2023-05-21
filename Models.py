@@ -9,14 +9,35 @@ class GenericModel:
         self.name = name
         self.model = model(weights='DEFAULT')
         self.opt = None
+        self.augmentation = transforms.Compose(
+            [
+                transforms.RandomApply(nn.ModuleList([
+                    transforms.RandomCrop(800),
+                ]), p=0.9),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomApply(nn.ModuleList([
+                    transforms.RandomRotation((-40, 40)),
+                ]), p=0.9),
+            ]
+        )
 
     def defineOpt(self, opt):
         if (opt[0] is optim.SGD) or (opt[0] is optim.RMSprop):
-            self.opt = (opt[0](self.model.parameters(), lr=float(opt[2]), weight_decay=opt[3], momentum=0),
+            self.opt = (opt[0](self.model.parameters(), lr=float(opt[2]), weight_decay=opt[3], momentum=0.9),
                         opt[1], opt[2], opt[3], opt[4])
         else:
             self.opt = (opt[0](self.model.parameters(), lr=float(opt[2]), weight_decay=opt[3]),
                         opt[1], opt[2], opt[3], opt[4])
+
+    def defineTransform(self, resizeSize, resizeMode, cropSize, mean, std):
+        self.transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Resize(resizeSize, resizeMode, antialias=True),
+                transforms.CenterCrop(cropSize),
+                #                transforms.Normalize(mean=mean, std=std)
+                #                transforms.Normalize(mean=mean, std=std)
+            ])
 
 
 class AlexNet(GenericModel):
@@ -25,13 +46,7 @@ class AlexNet(GenericModel):
         self.model.classifier[-1] = nn.Linear(in_features=4096, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(256, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class EfficientNetB0(GenericModel):
@@ -40,13 +55,7 @@ class EfficientNetB0(GenericModel):
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BICUBIC),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(256, InterpolationMode.BICUBIC, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class MaxVitT(GenericModel):
@@ -55,13 +64,7 @@ class MaxVitT(GenericModel):
         self.model.classifier[-1] = nn.Linear(in_features=512, out_features=num_classes, bias=False)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(224, InterpolationMode.BICUBIC),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(224, InterpolationMode.BICUBIC, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class MNasNet05(GenericModel):
@@ -70,13 +73,7 @@ class MNasNet05(GenericModel):
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(256, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class MobileNetV2(GenericModel):
@@ -85,13 +82,7 @@ class MobileNetV2(GenericModel):
         self.model.classifier[-1] = nn.Linear(in_features=self.model.last_channel, out_features=num_classes)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(232, InterpolationMode.BILINEAR),
-                transforms.RandomCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(232, InterpolationMode.BILINEAR, 224, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 
 
 class MobileNetV3L(GenericModel):
@@ -100,13 +91,7 @@ class MobileNetV3L(GenericModel):
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(232, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(232, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class RegNetY400MF(GenericModel):
@@ -115,13 +100,7 @@ class RegNetY400MF(GenericModel):
         self.model.fc = nn.Linear(in_features=440, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(232, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(232, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class ResNet18(GenericModel):
@@ -130,13 +109,7 @@ class ResNet18(GenericModel):
         self.model.fc = nn.Linear(in_features=512, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(256, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class ResNet50(GenericModel):
@@ -145,13 +118,7 @@ class ResNet50(GenericModel):
         self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(232, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(232, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class ResNext50(GenericModel):
@@ -160,13 +127,7 @@ class ResNext50(GenericModel):
         self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(232, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(232, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class ShuffleNetV205(GenericModel):
@@ -175,13 +136,7 @@ class ShuffleNetV205(GenericModel):
         self.model.fc = nn.Linear(in_features=1024, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(256, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class SqueezeNet10(GenericModel):
@@ -190,13 +145,7 @@ class SqueezeNet10(GenericModel):
         self.model.classifier[-3] = nn.Conv2d(512, num_classes, kernel_size=1)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(256, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class VitB16(GenericModel):
@@ -205,24 +154,13 @@ class VitB16(GenericModel):
         self.model.heads[-1] = nn.Linear(in_features=768, out_features=num_classes, bias=True)
         self.model.to(device)
         self.defineOpt(opt)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineTransform(256, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
 
 class Vgg11(GenericModel):
     def __init__(self, num_classes, device, opt):
-        super().__init__('Vgg11', torchvision.models.vgg11, opt)
+        super().__init__('Vgg11', torchvision.models.vgg11)
         self.model.classifier[-1] = nn.Linear(in_features=4096, out_features=num_classes, bias=True)
         self.model.to(device)
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize(256, InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
+        self.defineOpt(opt)
+        self.defineTransform(256, InterpolationMode.BILINEAR, 224, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])

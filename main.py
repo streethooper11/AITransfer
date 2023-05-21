@@ -5,6 +5,7 @@ import os
 
 import pandas as pd
 import torch
+from PIL import Image
 from sklearn.model_selection import train_test_split
 from torch.utils.tensorboard import SummaryWriter
 import csv
@@ -19,7 +20,6 @@ from DiseaseEnum import Disease
 def training_stage(dataPath, imagePath, modelts, opts, savefolder,
                    outputNum=2, train_data_ratio=0.8, name=''):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # device = torch.device('cpu')
 
     models = []
     for modelf in modelts:
@@ -44,6 +44,7 @@ def training_stage(dataPath, imagePath, modelts, opts, savefolder,
             trainDS_copy = copy.deepcopy(trainDS)
             valDS_copy = copy.deepcopy(valDS)
 
+            trainDS_copy.augmentation = model.augmentation
             trainDS_copy.transform = model.transform
             valDS_copy.transform = model.transform
 
@@ -54,7 +55,7 @@ def training_stage(dataPath, imagePath, modelts, opts, savefolder,
                 "TorchPretrained",
                 loader,
                 device=device,
-                testing=False,
+                validation=True,
                 optimizer=model.opt[0],
                 loss=torch.nn.CrossEntropyLoss(),
                 epochs=model.opt[4],
@@ -90,7 +91,7 @@ def training_stage(dataPath, imagePath, modelts, opts, savefolder,
                 "TorchPretrained",
                 loader,
                 device=device,
-                testing=False,
+                validation=True,
                 optimizer=model.opt[0],
                 loss=torch.nn.BCELoss(),
                 epochs=model.opt[4],
@@ -184,53 +185,42 @@ if __name__ == "__main__":
     ]
 
     optims = [
-        (torch.optim.Adam, '_Adam_', '0.0001', 0.0, 60),
-        (torch.optim.Adam, '_Adam_', '0.0002', 0.0, 50),
-        (torch.optim.Adam, '_Adam_', '0.0003', 0.0, 40),
-        (torch.optim.Adam, '_Adam_', '0.0004', 0.0, 35),
-        (torch.optim.Adam, '_Adam_', '0.0005', 0.0, 30),
-        (torch.optim.Adam, '_Adam_', '0.001', 0.0, 25),
+#        (torch.optim.Adam, '_Adam_', '0.001', 0.0, 200),
+        (torch.optim.Adam, '_Adam_', '0.0005', 0.0, 200),
     ]
 
     # variables you can change
-    setname = 'set3'  # choose the set to work on
-    domultitogether = True  # True means multi-labels; false means work on each label separately
+    setnames = [
+        'sample',
+        'set3',
+#        'set1-3',
+    ]
 
-    imageFolderPath = 'set\\' + setname + '\\train\\'
+    domultitogether = False  # True means multi-labels; false means work on each label separately
+    column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
+    torch.backends.cudnn.benchmark = True
 
-    if setname == 'sample':
-        originalFilePath = 'set\\sample_labels.csv'
-    else:
-        originalFilePath = 'set\\Data_Entry_2017.csv'
+    for setname in setnames:
+        imageFolderPath = 'set\\' + setname + '\\train\\'
 
-    if domultitogether is True:
-        sf = 'save\\' + setname + '\\multiclass\\'
-        os.makedirs(sf, exist_ok=True)
-        cleanedFilePath = sf + 'Entry_cleaned.csv'
-        clean_then_save_csv(originalFilePath, cleanedFilePath, imageFolderPath,
-                            colenum=-1)
-        training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf,
-                       outputNum=(len(Disease) - 1), train_data_ratio=0.7)
-        training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf,
-                       outputNum=(len(Disease)-1), train_data_ratio=0.8)
-    else:
-        for column in Disease:
-            sf = 'save\\' + setname + '\\single\\' + column.name + '\\'
+        if setname == 'sample':
+            originalFilePath = 'set\\sample_labels.csv'
+        else:
+            originalFilePath = 'set\\Data_Entry_2017.csv'
+
+        if domultitogether is True:
+            sf = 'save\\' + setname + '\\multilabel\\'
+            os.makedirs(sf, exist_ok=True)
+            cleanedFilePath = sf + 'Entry_cleaned.csv'
+            clean_then_save_csv(originalFilePath, cleanedFilePath, imageFolderPath,
+                                colenum=-1)
+            training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf,
+                           outputNum=(len(Disease) - 1), train_data_ratio=0.8)
+        else:
+            sf = 'save\\' + setname + '\\' + column.name + '\\'
             os.makedirs(sf, exist_ok=True)
             cleanedFilePath = sf + 'Entry_cleaned.csv'
             clean_then_save_csv(originalFilePath, cleanedFilePath, imageFolderPath,
                                 colenum=column.value)
             training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf,
                            outputNum=2, train_data_ratio=0.8, name=column.name)
-
-    setname = 'set1-3'  # choose the set to work on
-    imageFolderPath = 'set\\' + setname + '\\train\\'
-    sf = 'save\\' + setname + '\\multiclass\\'
-    os.makedirs(sf, exist_ok=True)
-    cleanedFilePath = sf + 'Entry_cleaned.csv'
-    clean_then_save_csv(originalFilePath, cleanedFilePath, imageFolderPath,
-                        colenum=-1)
-    training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf,
-                   outputNum=(len(Disease) - 1), train_data_ratio=0.7)
-    training_stage(cleanedFilePath, imageFolderPath, modeltypes, optims, sf,
-                   outputNum=(len(Disease) - 1), train_data_ratio=0.8)
