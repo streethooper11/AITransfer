@@ -1,4 +1,4 @@
-# Source: https://github.com/EhabR98/Transfer-Learning-with-MobileNetV2/blob/main/README.md#1
+# Source: https://keras.io/guides/transfer_learning/
 
 
 import copy
@@ -63,7 +63,7 @@ def training_stage(dataPath, imagePath, savefolder,
                    outputNum=1, train_data_ratio=0.8, name=''):
     # Settable variables
     batch_size = 32
-    epochs = 50
+    epochs = 150
     learning_rate = 0.001
 
     img_size = (224, 224)
@@ -86,24 +86,26 @@ def training_stage(dataPath, imagePath, savefolder,
 
     x = base_model(x, training=False)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    prediction_layer = tf.keras.layers.Dense(outputNum, activation='sigmoid')
+    outputs = tf.keras.layers.Dense(outputNum)(x)
 
-    outputs = prediction_layer(x)
+    model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
-    model = tf.keras.Model(inputs, outputs)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    metrics = [
+        tf.keras.metrics.BinaryAccuracy(name='accuracy', threshold=0.5),
+        tf.keras.metrics.Precision(thresholds=0.5, name='precision'),
+        tf.keras.metrics.Recall(thresholds=0.5, name='recall'),
+        tf.keras.metrics.TruePositives(thresholds=0.5, name='tp'),
+        tf.keras.metrics.FalseNegatives(thresholds=0.5, name='fn'),
+        tf.keras.metrics.FalsePositives(thresholds=0.5, name='fp'),
+        tf.keras.metrics.TrueNegatives(thresholds=0.5, name='tn'),
+        tf.keras.metrics.AUC(name='auc'),
+    ]
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        loss=tf.keras.losses.BinaryCrossentropy(),
-        metrics=[
-            tf.keras.metrics.BinaryAccuracy(name='accuracy', threshold=0.5),
-            tf.keras.metrics.Precision(thresholds=0.5, name='precision'),
-            tf.keras.metrics.Recall(thresholds=0.5, name='recall'),
-            tf.keras.metrics.TruePositives(thresholds=0.5, name='tp'),
-            tf.keras.metrics.FalseNegatives(thresholds=0.5, name='fn'),
-            tf.keras.metrics.FalsePositives(thresholds=0.5, name='fp'),
-            tf.keras.metrics.TrueNegatives(thresholds=0.5, name='tn'),
-            tf.keras.metrics.AUC(name='auc'),
-        ],
+        optimizer=optimizer,
+        loss=loss,
+        metrics=metrics,
     )
 
     csv_logger = CSVLogger(savefolder + 'log.csv', append=True, separator=';')
@@ -114,6 +116,23 @@ def training_stage(dataPath, imagePath, savefolder,
               validation_steps=num_steps_val,
               verbose=2,
               callbacks=[csv_logger]
+              )
+
+    base_model.trainable = True
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
+        loss=loss,
+        metrics=metrics,
+    )
+
+    csv_logger = CSVLogger(savefolder + 'log2.csv', append=True, separator=';')
+    model.fit(train_gen,
+              epochs=epochs,
+              steps_per_epoch=num_steps_train,
+              validation_data=validation_gen,
+              validation_steps=num_steps_val,
+              verbose=2,
+              callbacks=[csv_logger],
               )
 
 

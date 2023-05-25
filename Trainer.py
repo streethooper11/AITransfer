@@ -1,4 +1,5 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
+# https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
 
 import os
 
@@ -10,26 +11,28 @@ from sklearn.metrics import confusion_matrix, multilabel_confusion_matrix, Confu
 from DiseaseEnum import Disease
 
 
-class TrainerMulti:
-    def __init__(self, model, model_name, loaders, device, validation, optimizer,
-                 loss, epochs, pref, suffix, numoutputs, listtops=5):
-        self.model = model
-        self.model_name = model_name
+class Trainer:
+    def __init__(self, modelinf, loaders, device, validation, loss, pref, numoutputs, listtops=5, name='', ratio=0.8):
+        self.model = modelinf.model
         self.loaders = loaders
         self.device = device
         self.validation = validation
-        self.optimizer = optimizer
+        self.optimizer = modelinf.opt[0]
         self.criterion = loss
-        self.epochs = epochs
+        self.epochs = modelinf.opt[4]
         self.pref = pref
-        self.suffix = suffix
+        self.suffix = modelinf.name + modelinf.opt[1] + modelinf.opt[2] + '_decay_' + \
+                      str(modelinf.opt[3]) + '_trainratio_' + str(ratio)
         self.numoutputs = numoutputs
         self.listtops = listtops
+        self.name = name
 
     def train_step(self, images, labels):
+        self.optimizer.zero_grad()
+
         images = images.to(self.device)
         labels = labels.to(self.device)
-        self.optimizer.zero_grad()
+
         outputs = torch.sigmoid(self.model(images))
         loss = self.criterion(outputs, labels)
         loss.backward()
@@ -41,7 +44,7 @@ class TrainerMulti:
         return outputs, labels, loss
 
     def train(self):
-        logsave = self.pref + 'logs\\' + self.suffix + '.log'
+        logsave = os.path.join(self.pref, 'logs', self.suffix + '.log')
         os.makedirs(os.path.dirname(logsave), exist_ok=True)
         topmodels = []
         with open(logsave, 'w') as logFile:
@@ -68,19 +71,28 @@ class TrainerMulti:
                 loss = total_loss / counter
 
                 cm = multilabel_confusion_matrix(y_test, y_pred)
-                _, axes = plt.subplots(4, 4, figsize=(20, 20))
 
-                for eachdisease in Disease:
-                    if eachdisease.value != Disease.HasDisease.value:
-                        cmd = ConfusionMatrixDisplay(cm[eachdisease.value], display_labels=np.unique(y_test))
-                        cmd.plot(ax=axes[eachdisease.value // 4, eachdisease.value % 4])
-                        cmd.ax_.set_title(eachdisease.name)
+                if self.numoutputs > 1:
+                    _, axes = plt.subplots(4, 4, figsize=(20, 20))
 
-                axes[-1, -2].remove()
-                axes[-1, -2] = None
-                axes[-1, -1].remove()
-                axes[-1, -1] = None
-                cmdname = self.pref + 'matrices\\' + self.suffix + '_train_epoch' + str(epoch) + '.png'
+                    for eachdisease in Disease:
+                        if eachdisease.value != Disease.HasDisease.value:
+                            cmd = ConfusionMatrixDisplay(cm[eachdisease.value], display_labels=np.unique(y_test))
+                            cmd.plot(ax=axes[eachdisease.value // 4, eachdisease.value % 4])
+                            cmd.ax_.set_title(eachdisease.name)
+
+                    axes[-1, -2].remove()
+                    axes[-1, -2] = None
+                    axes[-1, -1].remove()
+                    axes[-1, -1] = None
+                else:
+                    cmd = ConfusionMatrixDisplay(cm[0], display_labels=np.unique(y_test))
+                    cmd.plot()
+                    cmd.ax_.set_title(self.name)
+
+                cmdname = os.path.join(self.pref, 'matrices', self.suffix + '_train_epoch' + str(epoch) + '.png')
+                os.makedirs(os.path.dirname(cmdname), exist_ok=True)
+
                 plt.savefig(cmdname)
                 plt.close()
 
@@ -94,8 +106,10 @@ class TrainerMulti:
                 logFile.write(f'Epoch {epoch} done\n------------------------------\n')
                 print(f'Epoch {epoch} done\n------------------------------')
 
-                modelsavename = self.pref + 'models\\' + \
-                                'f1_' + str(f1score) + self.suffix + '_epoch' + str(epoch) + '.pth'
+                modelsavename = os.path.join(self.pref, 'models',
+                                             'f1_' + str(f1score) + self.suffix + '_epoch' + str(epoch) + '.pth')
+                os.makedirs(os.path.dirname(modelsavename), exist_ok=True)
+
                 topmodels.append((modelsavename, f1score))
                 if len(topmodels) <= self.listtops:
                     torch.save(self.model.state_dict(), modelsavename)
@@ -115,16 +129,18 @@ class TrainerMulti:
         y_pred = []
 
         for i, (images, labels) in enumerate(self.loaders[mode]):
-            images = images.to(self.device)
-            labels = labels.to(self.device)
-            y_test.extend(labels.tolist())
             with torch.no_grad():
+                images = images.to(self.device)
+                labels = labels.to(self.device)
+
                 outputs = torch.sigmoid(self.model(images))
                 loss = self.criterion(outputs, labels)
-                for j in range(len(outputs)):
-                    outputs[j] = torch.round(outputs[j])
+
+            for j in range(len(outputs)):
+                outputs[j] = torch.round(outputs[j])
 
             y_pred.extend(outputs.tolist())
+            y_test.extend(labels.tolist())
             total_iter = images.size(0) * self.numoutputs
 
             tp_iter = torch.logical_and((outputs == labels), (labels == 1.)).sum()
@@ -148,19 +164,25 @@ class TrainerMulti:
         accuracy = (tp + tn) / (tp + tn + fp + fn)
         f1score = 0 if (sensitivity + precision) == 0 else 2 * (sensitivity * precision) / (sensitivity + precision)
 
-        _, axes = plt.subplots(4, 4, figsize=(20, 20))
+        if self.numoutputs > 1:
+            _, axes = plt.subplots(4, 4, figsize=(20, 20))
 
-        for eachdisease in Disease:
-            if eachdisease.value != Disease.HasDisease.value:
-                cmd = ConfusionMatrixDisplay(cm[eachdisease.value], display_labels=np.unique(y_test))
-                cmd.plot(ax=axes[eachdisease.value // 4, eachdisease.value % 4])
-                cmd.ax_.set_title(eachdisease.name)
+            for eachdisease in Disease:
+                if eachdisease.value != Disease.HasDisease.value:
+                    cmd = ConfusionMatrixDisplay(cm[eachdisease.value], display_labels=np.unique(y_test))
+                    cmd.plot(ax=axes[eachdisease.value // 4, eachdisease.value % 4])
+                    cmd.ax_.set_title(eachdisease.name)
 
-        axes[-1, -2].remove()
-        axes[-1, -2] = None
-        axes[-1, -1].remove()
-        axes[-1, -1] = None
-        cmdname = self.pref + 'matrices\\' + self.suffix + '_validation_epoch' + str(epoch) + '.png'
+            axes[-1, -2].remove()
+            axes[-1, -2] = None
+            axes[-1, -1].remove()
+            axes[-1, -1] = None
+        else:
+            cmd = ConfusionMatrixDisplay(cm[0], display_labels=np.unique(y_test))
+            cmd.plot()
+            cmd.ax_.set_title(self.name)
+
+        cmdname = os.path.join(self.pref, 'matrices', self.suffix + '_validation_epoch' + str(epoch) + '.png')
         plt.savefig(cmdname)
         plt.close()
 
@@ -174,33 +196,38 @@ class TrainerMulti:
         print(f'=====Sensitivity ({sensitivity:6.4f}) Specificity ({specificity:6.4f})=====')
         print(f'=====Precision ({precision:6.4f}) F1 Score ({f1score:6.4f})=====')
 
-        return float(f'{f1score.item():6.4f}')
+        return float(f'{f1score:6.4f}')
 
 
-class Trainer():
-    def __init__(self, model, model_name, loaders, device, validation, optimizer,
-                 loss, epochs, pref, name):
-        self.model = model
-        self.model_name = model_name
+class TrainerSoftmax:
+    def __init__(self, modelinf, loaders, device, validation, loss, savefolder, name, ratio=0.8):
+        self.model = modelinf.model
         self.loaders = loaders
         self.device = device
         self.validation = validation
-        self.optimizer = optimizer
+        self.optimizer = modelinf.opt[0]
         self.criterion = loss
-        self.epochs = epochs
-        self.logSave = pref + '.log'
-        self.fileSave = pref + '.pth'
-        self.matrixSave = pref + '_matrix_epoch'
+        self.epochs = modelinf.opt[4]
+        self.pref = os.path.join(savefolder, modelinf.name + modelinf.opt[1] + modelinf.opt[2] + '_decay_' + \
+                    str(modelinf.opt[3]) + '_' + str(ratio) + 'train_softmax')
         self.name = name
 
+        self.logSave = self.pref + '.log'
+        self.fileSave = self.pref + '.pth'
+        self.matrixSave = self.pref + '_matrix_epoch'
+
     def train_step(self, images, labels):
+        self.optimizer.zero_grad()
+
         images = images.to(self.device)
         labels = labels.to(self.device)
-        self.optimizer.zero_grad()
+
         outputs = self.model(images)
         loss = self.criterion(outputs, labels)
+
         loss.backward()
         self.optimizer.step()
+
         _, predictions = outputs.max(1)
 
         return predictions, labels, loss
@@ -240,16 +267,20 @@ class Trainer():
         y_test = []
         y_pred = []
         for i, (images, labels) in enumerate(self.loaders[mode]):
-            images = images.to(self.device)
-            labels = labels.to(self.device)
-            y_test.extend(labels.tolist())
             with torch.no_grad():
+                images = images.to(self.device)
+                labels = labels.to(self.device)
+
                 outputs = self.model(images)
                 loss = self.criterion(outputs, labels)
-                total_loss += loss.item() * images.size(0)
-                total += images.size(0)
                 _, predictions = outputs.max(1)
-                y_pred.extend(predictions.tolist())
+
+            total_loss += loss.item() * images.size(0)
+            total += images.size(0)
+
+            y_pred.extend(predictions.tolist())
+            y_test.extend(labels.tolist())
+
         loss = total_loss / total
 
         cm = confusion_matrix(y_test, y_pred)
@@ -263,6 +294,7 @@ class Trainer():
 
         ConfusionMatrixDisplay(cm).plot()
         cmdname = self.matrixSave + str(epoch) + '_' + self.name + '.png'
+        os.makedirs(os.path.dirname(cmdname), exist_ok=True)
         plt.title('Confusion Matrix for ' + self.name)
         plt.savefig(cmdname)
         plt.close()

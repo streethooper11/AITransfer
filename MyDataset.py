@@ -1,16 +1,26 @@
 # Source: https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
 import os
 
-import torch
 from torch.utils.data import Dataset
 from PIL import Image
-from torchvision.transforms import transforms
+import numpy as np
+import torchvision.transforms as transforms
+
+def savetransformedimage(img_dir, image, name):
+    invTrans = transforms.Compose([transforms.Normalize(mean=[0., 0., 0.],
+                                                        std=[1 / 0.252, 1 / 0.252, 1 / 0.252]),
+                                   transforms.Normalize(mean=[-0.5056, -0.5056, -0.5056],
+                                                        std=[1., 1., 1.]),
+                                   transforms.ToPILImage()
+                                   ])
+
+    conv = invTrans(image['image'])
+    conv.save(os.path.join(img_dir, 'ha', name))
 
 
-class CustomImageDatasetMulti(Dataset):
+class CustomImageDataset(Dataset):
     def __init__(self, img_dir, x, y):
         self.img_dir = img_dir
-        self.augmentation = None
         self.transform = None
         self.x = x
         self.y = y
@@ -23,16 +33,17 @@ class CustomImageDatasetMulti(Dataset):
         image = Image.open(img_path).convert('RGB')
         label = self.y[idx]
 
-        if self.transform:
-            image = self.transform(image)
+        image_res = np.array(image)
+        image_res = self.transform(image=image_res)
 
-        return image, label
+        # savetransformedimage(self.img_dir, image_res, self.x.iloc[idx, 0])
+
+        return image_res['image'], label
 
 
-class CustomImageDataset(Dataset):
+class CustomImageDatasetSingle(Dataset):
     def __init__(self, img_dir, x, y):
         self.img_dir = img_dir
-        self.augmentation = None
         self.transform = None
         self.x = x
         self.y = y
@@ -45,23 +56,7 @@ class CustomImageDataset(Dataset):
         image = Image.open(img_path).convert('RGB')
         label = self.y.iloc[idx]
 
-        if self.augmentation:
-            image = self.augmentation(image)
+        image_res = np.array(image)
+        image_res = self.transform(image=image_res)
 
-        image = self.transform(image)
-
-        red_mean = torch.mean(image[0, :, :])  # we take mean pixel value from Red channel
-        green_mean = torch.mean(image[1, :, :])  # we take mean pixel value from Green channel
-        blue_mean = torch.mean(image[2, :, :])  # we take mean pixel value from Blue channel
-
-        red_std = torch.std(image[0, :, :])  # we take std deviation of pixel values from Red channel
-        green_std = torch.std(image[1, :, :])  # we take std deviation of pixel values from Green channel
-        blue_std = torch.std(image[2, :, :])  # we take std deviation of pixel values from Blue channel
-
-        norm_means = [red_mean, green_mean, blue_mean]
-        norm_stds = [red_std, green_std, blue_std]
-
-        transform = transforms.Normalize(mean=norm_means, std=norm_stds)
-        image = transform(image)
-
-        return image, label
+        return image_res['image'], label
