@@ -148,6 +148,7 @@ class TrainerCombineSingle:
 
         ConfusionMatrixDisplay(cm).plot()
         cmdname = os.path.join(self.pref, 'matrices', self.suffix + '_validation_epoch' + str(epoch) + '.png')
+        os.makedirs(os.path.dirname(cmdname), exist_ok=True)
         plt.title('Validation Confusion Matrix for ' + self.name)
         plt.savefig(cmdname)
         plt.close()
