@@ -38,12 +38,14 @@ def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, o
 
     loader = Loader.create_loaders(train_set=trainDS, val_set=valDS)
 
+    # make the model with frozen layers and a new classification layer; load a previous model if given
     model = model_t(outputNum, device, optim_t)
     if bestmodel is not None:
         checkpoint = torch.load(bestmodel[0])
         model.model.load_state_dict(checkpoint['model_state_dict'])
         model.opt[0].load_state_dict(checkpoint['optimizer_state_dict'])
 
+    # train the new layer
     trainer = Trainer.TrainerSingle(
         bestmodel,
         model,
@@ -56,34 +58,27 @@ def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, o
         ratio=train_ratio
     )
 
-    bestmodel = trainer.train()
+    _ = trainer.train()
 
+    # fine-tune the whole model
     model.define_grads_and_last_layer(feature_extract=False)
+    model.updateparams()
     model.model.to(device)
     model.defineOpt(optim_f)
+    trainer.pref = os.path.join(savefolder, 'finetune')
+    trainer.suffix = model.name + model.opt[1] + model.opt[2] + '_decay_' + \
+                     str(model.opt[3]) + '_trainratio_' + str(train_ratio)
 
-    trainer = Trainer.TrainerSingle(
-        bestmodel,
-        model,
-        loader,
-        device=device,
-        validation=True,
-        loss=torch.nn.BCELoss(),
-        pref=os.path.join(savefolder, 'finetune'),
-        name=name,
-        ratio=train_ratio
-    )
+    bestmodel = trainer.train()
 
-    best_model = trainer.train()
-
-    return best_model
+    return bestmodel
 
 
 def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
               train_t, valid_t, resizeflag, usedcolumn, takenum, position):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # training stage; save the model with the highest f1 score
 
+    # training stage; save the model with the highest f1 score
     if resizeflag is True:
         topsetfolder = os.path.join('set', 'all', 'resized', '')
         topsavefolder = os.path.join('save', 'resized', 'combine', column.name, position, '')
@@ -143,8 +138,8 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
 
     logsave = os.path.join(trainer.pref, 'logs', trainer.suffix + '.log')
     os.makedirs(os.path.dirname(logsave), exist_ok=True)
-    with open(logsave, 'w') as logFile:
-        trainer.evaluate(logFile=logFile)
+    with open(logsave, 'w') as logF:
+        trainer.evaluate(logFile=logF)
 
     return bestmodel
 
@@ -156,19 +151,19 @@ if __name__ == "__main__":
         # 'set2',
         # 'set3',
         # 'set4',
-        # 'set5',
+        'set5',
         # 'set6',
         # 'set7',
         # 'set8',
         # 'set9',
         # 'set10',
         # 'set11',
-        'sample',
+        # 'sample',
     ]
 
     modeltype = Models.MobileNetV2
-    optim_transfer = (torch.optim.SGD, '_SGD_', '0.001', 0.0, 10)
-    optim_finetuning = (torch.optim.SGD, '_SGD_fine_', '0.00001', 0.0, 10)
+    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 30)
+    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.00001', 0.0, 20)
 
     column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
     view_position = ''
@@ -184,7 +179,7 @@ if __name__ == "__main__":
     else:
         resized = True
         augment_options = '000'
-        transform_options = '000'
+        transform_options = '010'
 
     foldername = augment_options + '_' + transform_options
     train_transform, valid_transform = TransformUtil.getTransforms(augment_options, transform_options, resized)

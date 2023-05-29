@@ -11,19 +11,6 @@ from sklearn.metrics import confusion_matrix, multilabel_confusion_matrix, Confu
 from DiseaseEnum import Disease
 
 
-# Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
-# https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
-
-import os
-
-import numpy as np
-import torch
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, multilabel_confusion_matrix, ConfusionMatrixDisplay
-
-from DiseaseEnum import Disease
-
-
 class TrainerSingle:
     def __init__(self, best_path, modelinf, loaders, device, validation, loss, pref, name='', ratio=0.8):
         self.best_path = best_path
