@@ -108,8 +108,8 @@ if __name__ == "__main__":
     setname = 'whole'
 
     modeltype = Models.MobileNetV2
-    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 30)
-    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.000001', 0.0, 20)
+    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 50)
+    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.00001', 0.0, 20)
 
     resized = True  # True means use previously resized images
     column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column

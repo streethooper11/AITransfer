@@ -108,8 +108,8 @@ if __name__ == "__main__":
     setname = 'whole'
 
     modeltype = Models.MobileNetV2
-    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 30)
-    optim_finetuning = (torch.optim.SGD, '_SGD_fine_', '0.00001', 0.0, 25)
+    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 50)
+    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.00001', 0.0, 20)
 
     resized = True  # True means use previously resized images
     column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
@@ -129,8 +129,6 @@ if __name__ == "__main__":
     transform_options = [
         '000', '010', '020', '100', '110', '120'
     ]
-
-    random.shuffle(augment_options)
 
     for a in augment_options:
         random.shuffle(transform_options)
