@@ -8,6 +8,8 @@ import random
 import pandas as pd
 import torch
 from torch.utils.tensorboard import SummaryWriter
+import albumentations as A
+import albumentations.pytorch
 
 import Loader
 import Models
@@ -109,8 +111,6 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
     TestUtil.test_stage(bestmodel, device, topsetfolder, topsavefolder, takenum, model_t, optim_f, valid_t,
                         usedcolumn)
 
-    return bestmodel
-
 
 if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         # 'set2',
         # 'set3',
         # 'set4',
-        'set5',
+        # 'set5',
         # 'set6',
         # 'set7',
         # 'set8',
@@ -136,24 +136,18 @@ if __name__ == "__main__":
     column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
     view_position = ''
 
-    if len(sys.argv) > 3:
-        if sys.argv[1] == '0':
-            resized = False
-        else:
-            resized = True
+    resized = True
+    imagenetnorm = True
+    sepia = True
+    sharpenflag = 0
 
-        augment_options = sys.argv[2]
-        transform_options = sys.argv[3]
-    else:
-        resized = True
-        augment_options = '000'
-        transform_options = '010'
+    train_transform, valid_transform = TransformUtil.getTransformsFromFlags(
+        resized, imagenetnorm, sepia, sharpenflag)
 
-    foldername = augment_options + '_' + transform_options
-    train_transform, valid_transform = TransformUtil.getTransforms(augment_options, transform_options, resized)
+    foldername = 'custom'
 
-    bestmodelinf = doOneIter(None, setnames, modeltype, optim_transfer, optim_finetuning,
-                             train_transform, valid_transform, resized, column, foldername, view_position)
+    doOneIter(None, setnames, modeltype, optim_transfer, optim_finetuning,
+              train_transform, valid_transform, resized, column, foldername, view_position)
 
     if resized is True:
         topsave = os.path.join('save', 'resized', 'combine', column.name, view_position, '')

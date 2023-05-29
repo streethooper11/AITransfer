@@ -68,3 +68,45 @@ def getTransforms(a_opt, t_opt, resizeflag):
     )
 
     return train_transform, test_transform
+
+def getTransformsFromFlags(resized, imagenetnorm, sepia, sharpenflag):
+    if resized:
+        prefix = []
+        suffix = [A.pytorch.transforms.ToTensorV2()]
+    else:
+        prefix = [A.CenterCrop(width=900, height=900, p=1.0)]
+        suffix = [A.Resize(224, 224), A.pytorch.transforms.ToTensorV2()]
+
+    if imagenetnorm:
+        norm = [A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]
+    else:
+        norm = [A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.25, 0.25, 0.25])]
+
+    if sepia:
+        sepia = [A.ToSepia(p=1.0)]
+    else:
+        sepia = []
+
+    if sharpenflag == 0:
+        sharp = []
+    elif sharpenflag == 1:
+        sharp = [A.CLAHE(p=1.0)]
+    else:
+        sharp = A.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), p=1.0)
+
+    middle = [
+        A.Affine(scale=None, translate_percent=None, rotate=(-10, 10), p=0.5),
+        A.GaussNoise(per_channel=False, p=0.5),
+        A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+        A.HorizontalFlip(p=0.5),
+    ]
+
+    train_transform = A.Compose(
+        prefix + middle + sepia + sharp + norm + suffix
+    )
+
+    valid_transform = A.Compose(
+        prefix + sepia + sharp + norm + suffix
+    )
+
+    return train_transform, valid_transform
