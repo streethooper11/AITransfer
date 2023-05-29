@@ -1,6 +1,5 @@
 # Source: https://colab.research.google.com/drive/1c5lu1ePav66V_DirkH6YfJyKETul0yrH
 
-import copy
 import os
 import random
 
@@ -11,13 +10,16 @@ from torch.utils.tensorboard import SummaryWriter
 import Loader
 import Models
 import MyDataset
+import Trainer
+
 import TransformUtil
 import DataUtil
-import Trainer
+import TestUtil
+
 from DiseaseEnum import Disease
 
 
-def training_stage(device, imagePath, csvpath, savefolder, model_t, optim_t, optim_f,
+def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, optim_t, optim_f,
                    outputNum=1, train_ratio=0.8, name='', train_t=None, valid_t=None):
     train_path = os.path.join(csvpath, 'Entry_cleaned_Train.csv')
     train_df = pd.read_csv(train_path)
@@ -38,9 +40,13 @@ def training_stage(device, imagePath, csvpath, savefolder, model_t, optim_t, opt
     loader = Loader.create_loaders(train_set=trainDS, val_set=valDS)
 
     model = model_t(outputNum, device, optim_t)
+    if bestmodel is not None:
+        checkpoint = torch.load(bestmodel)
+        model.model.load_state_dict(checkpoint['model_state_dict'])
+        model.opt[0].load_state_dict(checkpoint['optimizer_state_dict'])
 
     trainer = Trainer.TrainerSingle(
-        None,
+        bestmodel,
         model,
         loader,
         device=device,
@@ -67,10 +73,8 @@ def training_stage(device, imagePath, csvpath, savefolder, model_t, optim_t, opt
     return bestmodel
 
 
-def doOneIter(useset, model_t, optim_t, optim_f, train_t, valid_t,
+def doOneIter(bestmodel, device, useset, model_t, optim_t, optim_f, train_t, valid_t,
               resizeflag, usedcolumn, takenum, position):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     # training stage; save the model with the highest f1 score
     if resizeflag is True:
         topsetfolder = os.path.join('set', useset, 'resized', '')
@@ -86,61 +90,26 @@ def doOneIter(useset, model_t, optim_t, optim_f, train_t, valid_t,
     os.makedirs(sf, exist_ok=True)
 
     # making clean csv files
-    # DataUtil.makecleanedcsv(csvfolder, imageFolderPath, setname, usedcolumn.value, position)
+    # makecleanedcsv(csvfolder, imageFolderPath, usedcolumn.value, position)
     # csvpath = os.path.join(csvfolder, 'Entry_cleaned.csv')
-    # DataUtil.savestratifiedsplits(csvpath, csvfolder, 0.8)
+    # savestratifiedsplits(csvpath, csvfolder, 0.8)
 
-    bestmodel = training_stage(device, imageFolderPath, csvfolder, sf, model_t, optim_t,
-                               optim_f, outputNum=1, train_ratio=0.8, name=usedcolumn.name,
+    bestmodel = training_stage(device, imageFolderPath, csvfolder, sf, bestmodel, model_t, optim_t, optim_f,
+                               outputNum=1, train_ratio=0.8, name=usedcolumn.name,
                                train_t=train_t, valid_t=valid_t)
 
-    imageFolderPath = os.path.join(topset, 'test', '')
-    sf = os.path.join(topsave, 'done', 'test', '')
-    csvfolder = os.path.join(topsave, 'test', '')
-
-    os.makedirs(sf, exist_ok=True)
-    testcsvpath = os.path.join(csvfolder, 'Entry_cleaned.csv')
-
-    test_df = pd.read_csv(testcsvpath)
-    x = test_df.iloc[:, 0:-1]
-    y = test_df.iloc[:, -1]
-
-    ds = MyDataset.CustomImageDatasetSingle(imageFolderPath, x, y)
-    ds.transform = valid_t
-
-    loader = Loader.create_loaders(test_set=ds, testing=True)
-
-    model = model_t(1, device, optim_t)
-    checkpoint = torch.load(bestmodel[0])
-    model.model.load_state_dict(checkpoint['model_state_dict'])
-    model.opt[0].load_state_dict(checkpoint['optimizer_state_dict'])
-
-    trainer = Trainer.TrainerSingle(
-        best_path=None,
-        modelinf=model,
-        loaders=loader,
-        device=device,
-        validation=True,
-        loss=torch.nn.BCELoss(),
-        pref=sf,
-        name=usedcolumn.name,
-        ratio=0.8
-    )
-
-    logsave = os.path.join(trainer.pref, 'logs', trainer.suffix + '.log')
-    os.makedirs(os.path.dirname(logsave), exist_ok=True)
-    with open(logsave, 'w') as logF:
-        trainer.evaluate(logFile=logF)
+    return bestmodel
 
 
 if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
+    usedevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     setname = 'whole'
 
     modeltype = Models.MobileNetV2
     optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 30)
-    optim_finetuning = (torch.optim.SGD, '_SGD_fine_', '0.00001', 0.0, 25)
+    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.000001', 0.0, 20)
 
     resized = True  # True means use previously resized images
     column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
@@ -163,13 +132,14 @@ if __name__ == "__main__":
 
     random.shuffle(augment_options)
 
+    bestmodelpath = None
     for a in augment_options:
         random.shuffle(transform_options)
         for t in transform_options:
             foldername = a + '_' + t
             train_transform, valid_transform = TransformUtil.getTransforms(a, t, resized)
-            doOneIter(setname, modeltype, optim_transfer, optim_finetuning,
-                      train_transform, valid_transform, resized, column, foldername, view_position)
+            bestmodelpath = doOneIter(bestmodelpath, usedevice, setname, modeltype, optim_transfer, optim_finetuning,
+                                      train_transform, valid_transform, resized, column, foldername, view_position)
 
             transformsave = os.path.join(topsave, foldername, 'Transformations.txt')
             with open(transformsave, 'w') as logFile:
@@ -177,3 +147,8 @@ if __name__ == "__main__":
                 logFile.write(str(train_transform))
                 logFile.write('\nValidation transform:\n')
                 logFile.write(str(valid_transform))
+
+    # Test after everything is done
+    _, test_transform = TransformUtil.getTransforms('000', '000', resized)
+    TestUtil.test_stage(bestmodelpath, usedevice, topset, topsave, 'done', modeltype, optim_finetuning,
+                        test_transform, column)

@@ -13,8 +13,11 @@ import Loader
 import Models
 import MyDataset
 import Trainer
-import TransformUtil
+
 import DataUtil
+import TestUtil
+import TransformUtil
+
 from DiseaseEnum import Disease
 
 
@@ -101,6 +104,10 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
         bestmodel = training_stage(device, imageFolderPath, csvfolder, sf, bestmodel, model_t, optim_t,
                                    optim_f, outputNum=1, train_ratio=0.8, name=usedcolumn.name,
                                    train_t=train_t, valid_t=valid_t)
+
+    # Test each iteration
+    TestUtil.test_stage(bestmodel, device, topsetfolder, topsavefolder, takenum, model_t, optim_f, valid_t,
+                        usedcolumn)
 
     # test stage
     imageFolderPath = os.path.join(topsetfolder, 'test', '')
