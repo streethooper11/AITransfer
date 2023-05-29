@@ -12,7 +12,8 @@ from DiseaseEnum import Disease
 
 
 class TrainerCombineSingle:
-    def __init__(self, modelinf, loaders, device, validation, loss, pref, name='', ratio=0.8):
+    def __init__(self, best_path, modelinf, loaders, device, validation, loss, pref, name='', ratio=0.8):
+        self.best_path = best_path
         self.model = modelinf.model
         self.loaders = loaders
         self.device = device
@@ -44,7 +45,6 @@ class TrainerCombineSingle:
     def train(self):
         logsave = os.path.join(self.pref, 'logs', self.suffix + '.log')
         os.makedirs(os.path.dirname(logsave), exist_ok=True)
-        bestmodel = None
         with open(logsave, 'w') as logFile:
             for epoch in range(self.epochs):
                 logFile.write(f'Starting epoch {epoch}:\n')
@@ -87,7 +87,7 @@ class TrainerCombineSingle:
                 modelsavename = os.path.join(self.pref, 'models',
                                              'f1_' + str(f1score) + self.suffix + '_epoch' + str(epoch) + '.tar')
                 os.makedirs(os.path.dirname(modelsavename), exist_ok=True)
-                if bestmodel is None:
+                if self.best_path is None:
                     torch.save({
                         'epoch': epoch,
                         'model_state_dict': self.model.state_dict(),
@@ -95,10 +95,10 @@ class TrainerCombineSingle:
                         'loss': loss,
                         'f1score': f1score,
                     }, modelsavename)
-                    bestmodel = (modelsavename, f1score)
+                    self.best_path = (modelsavename, f1score)
                 else:
-                    if f1score > bestmodel[1]:
-                        os.remove(bestmodel[0])
+                    if f1score > self.best_path[1]:
+                        os.remove(self.best_path[0])
                         torch.save({
                             'epoch': epoch,
                             'model_state_dict': self.model.state_dict(),
@@ -106,10 +106,9 @@ class TrainerCombineSingle:
                             'loss': loss,
                             'f1score': f1score,
                         }, modelsavename)
-                        bestmodel = (modelsavename, f1score)
+                        self.best_path = (modelsavename, f1score)
 
-        return bestmodel[0]
-
+        return self.best_path
 
     def evaluate(self, epoch=0, mode='test', logFile=None):
         self.model.eval()
