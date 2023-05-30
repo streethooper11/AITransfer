@@ -44,7 +44,7 @@ def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, o
     loader = Loader.create_loaders(train_set=trainDS, val_set=valDS)
 
     # make the model with frozen layers and a new classification layer; load a previous model if given
-    model = model_t(outputNum, device, optim_t)
+    model = model_t(outputNum, device, optim_t, feature_extract=True)
     if bestmodel is not None:
         checkpoint = torch.load(bestmodel[0])
         model.model.load_state_dict(checkpoint['model_state_dict'])
@@ -63,18 +63,27 @@ def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, o
         ratio=train_ratio
     )
 
-    _ = trainer.train()
-
-    # fine-tune the whole model
-    model.define_grads_and_last_layer(feature_extract=False)
-    model.updateparams()
-    model.model.to(device)
-    model.defineOpt(optim_f)
-    trainer.pref = os.path.join(savefolder, 'finetune')
-    trainer.suffix = model.name + model.opt[1] + model.opt[2] + '_decay_' + \
-                     str(model.opt[3]) + '_trainratio_' + str(train_ratio)
-
     bestmodel = trainer.train()
+
+    # define a new model; fine-tune from the best checkpoint
+    model_fine = model_t(outputNum, device, optim_f, feature_extract=False)
+
+    checkpoint = torch.load(bestmodel[0])
+    model_fine.model.load_state_dict(checkpoint['model_state_dict'])
+
+    trainer_fine = Trainer.TrainerSingle(
+        bestmodel,
+        model_fine,
+        loader,
+        device=device,
+        validation=True,
+        loss=torch.nn.BCELoss(),
+        pref=os.path.join(savefolder, 'finetune'),
+        name=name,
+        ratio=train_ratio
+    )
+
+    bestmodel = trainer_fine.train()
 
     return bestmodel
 
@@ -121,25 +130,25 @@ if __name__ == "__main__":
         # 'set4',
         # 'set5',
         # 'set6',
-        # 'set7',
+        'set7',
         # 'set8',
         # 'set9',
         # 'set10',
         # 'set11',
-        'sample',
+        # 'sample',
     ]
 
     modeltype = Models.MobileNetV2
-    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 50)
-    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.00001', 0.0, 20)
+    optim_transfer = (torch.optim.AdamW, '_AdamW_', '0.001', 0.0, 30)
+    optim_finetuning = (torch.optim.AdamW, '_AdamW_fine_', '0.001', 0.0, 50)
 
     column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
     view_position = ''
 
     resized = False
     imagenetnorm = True
-    sepia = True
-    sharpenflag = 0
+    sepia = False
+    sharpenflag = 1
 
     train_transform, valid_transform = TransformUtil.getTransformsFromFlags(
         resized, imagenetnorm, sepia, sharpenflag)

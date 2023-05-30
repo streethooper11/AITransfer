@@ -3,12 +3,12 @@ from torch import nn, optim
 
 
 class GenericModel:
-    def __init__(self, name, model):
+    def __init__(self, name, model, feature_extract=True):
         self.name = name
         self.model = model(weights='DEFAULT')
         self.opt = None
         self.params_update = []
-        self.define_grads_and_last_layer(feature_extract=True)
+        self.define_grads_and_last_layer(feature_extract=feature_extract)
 
 
     def defineOpt(self, opt):
@@ -37,8 +37,8 @@ class GenericModel:
 
 
 class AlexNet(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('AlexNet', torchvision.models.alexnet)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('AlexNet', torchvision.models.alexnet, feature_extract)
         self.model.classifier[-1] = nn.Linear(in_features=4096, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -47,8 +47,8 @@ class AlexNet(GenericModel):
 
 
 class DenseNet121(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('DenseNet121', torchvision.models.densenet121)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('DenseNet121', torchvision.models.densenet121, feature_extract)
         self.model.classifier = nn.Linear(in_features=1024, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -57,8 +57,8 @@ class DenseNet121(GenericModel):
 
 
 class EfficientNetB0(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('EfficientNetB0', torchvision.models.efficientnet_b0)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('EfficientNetB0', torchvision.models.efficientnet_b0, feature_extract)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -67,8 +67,8 @@ class EfficientNetB0(GenericModel):
 
 
 class MaxVitT(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('MaxVitT', torchvision.models.maxvit_t)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('MaxVitT', torchvision.models.maxvit_t, feature_extract)
         self.model.classifier[-1] = nn.Linear(in_features=512, out_features=num_classes, bias=False)
         self.updateparams()
         self.model.to(device)
@@ -77,8 +77,8 @@ class MaxVitT(GenericModel):
 
 
 class MNasNet05(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('MNasNet05', torchvision.models.mnasnet0_5)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('MNasNet05', torchvision.models.mnasnet0_5, feature_extract)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -87,8 +87,8 @@ class MNasNet05(GenericModel):
 
 
 class MobileNetV2(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('MobileNetV2', torchvision.models.mobilenet_v2)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('MobileNetV2', torchvision.models.mobilenet_v2, feature_extract)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes)
         self.updateparams()
         self.model.to(device)
@@ -97,8 +97,8 @@ class MobileNetV2(GenericModel):
 
 
 class MobileNetV3L(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('MobileNetV3L', torchvision.models.mobilenet_v3_large)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('MobileNetV3L', torchvision.models.mobilenet_v3_large, feature_extract)
         self.model.classifier[-1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -107,8 +107,8 @@ class MobileNetV3L(GenericModel):
 
 
 class RegNetY400MF(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('RegNetY400MF', torchvision.models.regnet_y_400mf)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('RegNetY400MF', torchvision.models.regnet_y_400mf, feature_extract)
         self.model.fc = nn.Linear(in_features=440, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -117,8 +117,8 @@ class RegNetY400MF(GenericModel):
 
 
 class ResNet18(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('ResNet18', torchvision.models.resnet18)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('ResNet18', torchvision.models.resnet18, feature_extract)
         self.model.fc = nn.Linear(in_features=512, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -127,8 +127,8 @@ class ResNet18(GenericModel):
 
 
 class ResNet50(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('ResNet50', torchvision.models.resnet50)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('ResNet50', torchvision.models.resnet50, feature_extract)
         self.model.fc = nn.Linear(in_features=2048, out_features=num_classes)
         self.updateparams()
         self.model.to(device)
@@ -137,8 +137,8 @@ class ResNet50(GenericModel):
 
 
 class ResNext50(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('ResNext50', torchvision.models.resnext50_32x4d)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('ResNext50', torchvision.models.resnext50_32x4d, feature_extract)
         self.model.fc = nn.Linear(in_features=2048, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -147,8 +147,8 @@ class ResNext50(GenericModel):
 
 
 class ShuffleNetV205(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('ShuffleNetV205', torchvision.models.shufflenet_v2_x0_5)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('ShuffleNetV205', torchvision.models.shufflenet_v2_x0_5, feature_extract)
         self.model.fc = nn.Linear(in_features=1024, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -157,8 +157,8 @@ class ShuffleNetV205(GenericModel):
 
 
 class SqueezeNet10(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('SqueezeNet10', torchvision.models.squeezenet1_0)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('SqueezeNet10', torchvision.models.squeezenet1_0, feature_extract)
         self.model.classifier[-3] = nn.Conv2d(512, num_classes, kernel_size=1)
         self.updateparams()
         self.model.to(device)
@@ -167,8 +167,8 @@ class SqueezeNet10(GenericModel):
 
 
 class VitB16(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('VitB16', torchvision.models.vit_b_16)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('VitB16', torchvision.models.vit_b_16, feature_extract)
         self.model.heads[-1] = nn.Linear(in_features=768, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)
@@ -177,8 +177,8 @@ class VitB16(GenericModel):
 
 
 class Vgg11(GenericModel):
-    def __init__(self, num_classes, device, opt):
-        super().__init__('Vgg11', torchvision.models.vgg11)
+    def __init__(self, num_classes, device, opt, feature_extract=True):
+        super().__init__('Vgg11', torchvision.models.vgg11, feature_extract)
         self.model.classifier[-1] = nn.Linear(in_features=4096, out_features=num_classes, bias=True)
         self.updateparams()
         self.model.to(device)

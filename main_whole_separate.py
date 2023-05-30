@@ -22,7 +22,7 @@ from DiseaseEnum import Disease
 
 def training_stage(device, imagePath, csvpath, savefolder, model_t, optim_t, optim_f,
                    outputNum=1, train_ratio=0.8, name='', train_t=None, valid_t=None):
-    train_path = os.path.join(csvpath, 'Entry_cleaned_Train.csv')
+    train_path = os.path.join(csvpath, 'Entry_cleaned_2020_Train.csv')
     train_df = pd.read_csv(train_path)
     x_train = train_df.iloc[:, 0:-1]
     y_train = train_df.iloc[:, -1]
@@ -30,7 +30,7 @@ def training_stage(device, imagePath, csvpath, savefolder, model_t, optim_t, opt
     trainDS = MyDataset.CustomImageDatasetSingle(imagePath, x_train, y_train)
     trainDS.transform = train_t
 
-    valid_path = os.path.join(csvpath, 'Entry_cleaned_Test.csv')
+    valid_path = os.path.join(csvpath, 'Entry_cleaned_2020_Test.csv')
     valid_df = pd.read_csv(valid_path)
     x_val = valid_df.iloc[:, 0:-1]
     y_val = valid_df.iloc[:, -1]
@@ -54,18 +54,27 @@ def training_stage(device, imagePath, csvpath, savefolder, model_t, optim_t, opt
         ratio=train_ratio
     )
 
-    _ = trainer.train()
-
-    # fine-tune the whole model
-    model.define_grads_and_last_layer(feature_extract=False)
-    model.updateparams()
-    model.model.to(device)
-    model.defineOpt(optim_f)
-    trainer.pref = os.path.join(savefolder, 'finetune')
-    trainer.suffix = model.name + model.opt[1] + model.opt[2] + '_decay_' + \
-                     str(model.opt[3]) + '_trainratio_' + str(train_ratio)
-
     bestmodel = trainer.train()
+
+    # define a new model; fine-tune from the best checkpoint
+    model_fine = model_t(outputNum, device, optim_f, feature_extract=False)
+
+    checkpoint = torch.load(bestmodel[0])
+    model_fine.model.load_state_dict(checkpoint['model_state_dict'])
+
+    trainer_fine = Trainer.TrainerSingle(
+        bestmodel,
+        model_fine,
+        loader,
+        device=device,
+        validation=True,
+        loss=torch.nn.BCELoss(),
+        pref=os.path.join(savefolder, 'finetune'),
+        name=name,
+        ratio=train_ratio
+    )
+
+    bestmodel = trainer_fine.train()
 
     return bestmodel
 
@@ -89,9 +98,9 @@ def doOneIter(useset, model_t, optim_t, optim_f, train_t, valid_t,
     os.makedirs(sf, exist_ok=True)
 
     # making clean csv files
-    # DataUtil.makecleanedcsv(csvfolder, imageFolderPath, setname, usedcolumn.value, position)
-    # csvpath = os.path.join(csvfolder, 'Entry_cleaned.csv')
-    # DataUtil.savestratifiedsplits(csvpath, csvfolder, 0.8)
+    #DataUtil.makecleanedcsv(csvfolder, imageFolderPath, setname, usedcolumn.value, position)
+    #csvpath = os.path.join(csvfolder, 'Entry_cleaned_2020.csv')
+    #DataUtil.savestratifiedsplits(csvpath, csvfolder, 0.8)
 
     bestmodel = training_stage(device, imageFolderPath, csvfolder, sf, model_t, optim_t,
                                optim_f, outputNum=1, train_ratio=0.8, name=usedcolumn.name,
@@ -108,39 +117,59 @@ if __name__ == "__main__":
     setname = 'whole'
 
     modeltype = Models.MobileNetV2
-    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 50)
-    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.00001', 0.0, 20)
+    optim_transfer = (torch.optim.SGD, '_SGD_', '0.001', 0.0, 200)
+    optim_finetuning = (torch.optim.SGD, '_SGD_fine_', '0.00001', 0.0, 30)
 
-    resized = True  # True means use previously resized images
+    resized = False  # True means use previously resized images
     column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
     view_position = ''
+    dorandomaugment = True
 
     if resized is True:
-        topset = os.path.join('set', 'resized', setname, '')
+        topset = os.path.join('set', setname, 'resized', '')
         topsave = os.path.join('save', 'resized', setname, column.name, view_position, '')
     else:
         topset = os.path.join('set', setname, '')
         topsave = os.path.join('save', setname, column.name, view_position, '')
 
-    augment_options = [
-        '000', '001', '002', '010', '011', '012', '100', '101', '102', '110', '111', '112'
-    ]
+    if dorandomaugment:
+        imagenetnorm = True
+        sepia = False
+        sharpenflag = 1
+        train_transform, valid_transform = \
+            TransformUtil.getTransformsFromFlags(resized, imagenetnorm, sepia, sharpenflag)
 
-    transform_options = [
-        '000', '010', '020', '100', '110', '120'
-    ]
+        foldername = 'custom'
+        doOneIter(setname, modeltype, optim_transfer, optim_finetuning,
+                  train_transform, valid_transform, resized, column, foldername, view_position)
 
-    for a in augment_options:
-        random.shuffle(transform_options)
-        for t in transform_options:
-            foldername = a + '_' + t
-            train_transform, valid_transform = TransformUtil.getTransforms(a, t, resized)
-            doOneIter(setname, modeltype, optim_transfer, optim_finetuning,
-                      train_transform, valid_transform, resized, column, foldername, view_position)
+        transformsave = os.path.join(topsave, foldername, 'Transformations.txt')
 
-            transformsave = os.path.join(topsave, foldername, 'Transformations.txt')
-            with open(transformsave, 'w') as logFile:
-                logFile.write('Train transform:\n')
-                logFile.write(str(train_transform))
-                logFile.write('\nValidation transform:\n')
-                logFile.write(str(valid_transform))
+        with open(transformsave, 'w') as logFile:
+            logFile.write('Train transform:\n')
+            logFile.write(str(train_transform))
+            logFile.write('\nValidation transform:\n')
+            logFile.write(str(valid_transform))
+    else:
+        augment_options = [
+            '000', '001', '002', '010', '011', '012', '100', '101', '102', '110', '111', '112'
+        ]
+
+        transform_options = [
+            '000', '010', '020', '100', '110', '120'
+        ]
+
+        for a in augment_options:
+            random.shuffle(transform_options)
+            for t in transform_options:
+                foldername = a + '_' + t
+                train_transform, valid_transform = TransformUtil.getTransforms(a, t, resized)
+                doOneIter(setname, modeltype, optim_transfer, optim_finetuning,
+                          train_transform, valid_transform, resized, column, foldername, view_position)
+
+                transformsave = os.path.join(topsave, foldername, 'Transformations.txt')
+                with open(transformsave, 'w') as logFile:
+                    logFile.write('Train transform:\n')
+                    logFile.write(str(train_transform))
+                    logFile.write('\nValidation transform:\n')
+                    logFile.write(str(valid_transform))

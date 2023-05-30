@@ -93,7 +93,7 @@ def makecleanedcsv(topsavefolder, imageFolderPath, usedset, colenum, position):
     if usedset == 'sample':
         origcsvpath = os.path.join('set', 'sample_labels.csv')
     else:
-        origcsvpath = os.path.join('set', 'Data_Entry_2017.csv')
+        origcsvpath = os.path.join('set', 'Data_Entry_2017_v2020.csv')
 
     cleanpath = os.path.join(topsavefolder, 'Entry_cleaned.csv')
     clean_then_save_csv(origcsvpath, cleanpath, imageFolderPath, colenum, position)

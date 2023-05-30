@@ -8,8 +8,8 @@ import torchvision.transforms as transforms
 
 def savetransformedimage(img_dir, image, name):
     invTrans = transforms.Compose([transforms.Normalize(mean=[0., 0., 0.],
-                                                        std=[1 / 0.252, 1 / 0.252, 1 / 0.252]),
-                                   transforms.Normalize(mean=[-0.5056, -0.5056, -0.5056],
+                                                        std=[1 / 0.229, 1 / 0.224, 1 / 0.225]),
+                                   transforms.Normalize(mean=[-0.485, -0.456, -0.406],
                                                         std=[1., 1., 1.]),
                                    transforms.ToPILImage()
                                    ])

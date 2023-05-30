@@ -57,18 +57,27 @@ def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, o
         ratio=train_ratio
     )
 
-    _ = trainer.train()
-
-    # fine-tune the whole model
-    model.define_grads_and_last_layer(feature_extract=False)
-    model.updateparams()
-    model.model.to(device)
-    model.defineOpt(optim_f)
-    trainer.pref = os.path.join(savefolder, 'finetune')
-    trainer.suffix = model.name + model.opt[1] + model.opt[2] + '_decay_' + \
-                     str(model.opt[3]) + '_trainratio_' + str(train_ratio)
-
     bestmodel = trainer.train()
+
+    # define a new model; fine-tune from the best checkpoint
+    model_fine = model_t(outputNum, device, optim_f, feature_extract=False)
+
+    checkpoint = torch.load(bestmodel[0])
+    model_fine.model.load_state_dict(checkpoint['model_state_dict'])
+
+    trainer_fine = Trainer.TrainerSingle(
+        bestmodel,
+        model_fine,
+        loader,
+        device=device,
+        validation=True,
+        loss=torch.nn.BCELoss(),
+        pref=os.path.join(savefolder, 'finetune'),
+        name=name,
+        ratio=train_ratio
+    )
+
+    bestmodel = trainer_fine.train()
 
     return bestmodel
 
@@ -116,7 +125,7 @@ if __name__ == "__main__":
     view_position = ''
 
     if resized is True:
-        topset = os.path.join('set', 'resized', setname, '')
+        topset = os.path.join('set', setname, 'resized', '')
         topsave = os.path.join('save', 'resized', setname, column.name, view_position, '')
     else:
         topset = os.path.join('set', setname, '')

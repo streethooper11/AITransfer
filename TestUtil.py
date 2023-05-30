@@ -15,14 +15,14 @@ def test_stage(bestmodel, device, topsetfolder, topsavefolder, foldname, modelty
     csvfolder = os.path.join(topsavefolder, 'test', '')
 
     os.makedirs(sf, exist_ok=True)
-    testcsvpath = os.path.join(csvfolder, 'Entry_cleaned.csv')
+    testcsvpath = os.path.join(csvfolder, 'Entry_cleaned_2020.csv')
 
     test_df = pd.read_csv(testcsvpath)
     x = test_df.iloc[:, 0:-1]
     y = test_df.iloc[:, -1]
 
     ds = MyDataset.CustomImageDatasetSingle(imageFolderPath, x, y)
-    _, ds.transform = test_t
+    ds.transform = test_t
 
     loader = Loader.create_loaders(test_set=ds, testing=True)
 
