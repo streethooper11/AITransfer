@@ -165,12 +165,20 @@ if __name__ == "__main__":
     column_output = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
     viewing_position = ''
 
-    use_resized = True
-
     if len(sys.argv) > 1:
         option = int(sys.argv[1])
     else:
         option = 0
+
+    if len(sys.argv) > 2:
+        resizing = int(sys.argv[2])
+    else:
+        resizing = 0
+
+    if resizing == 0:
+        use_resized = False
+    else:
+        use_resized = True
 
     if option % 2 == 0:
         norm_imagenet = False
