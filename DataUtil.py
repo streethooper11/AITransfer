@@ -89,11 +89,105 @@ def clean_then_save_csv(origFilePath, cleanFilePath, imgPath, colenum, position)
                         csv_write.writerow(['Image Index', diseasecol])
 
 
-def makecleanedcsv(topsavefolder, imageFolderPath, usedset, colenum, position):
+def clean_then_save_csv_unique(origFilePath, cleanFilePath, imgPath, colenum, position, temppath):
+    with open(origFilePath, newline='') as csvreadfile:
+        with open(temppath, 'w', newline='') as csvwritefile:
+            csv_read = csv.reader(csvreadfile, delimiter=',')
+            csv_write = csv.writer(csvwritefile, delimiter=',')
+            firstrow = True
+            patientid = '-1'
+
+            for row in csv_read:
+                if firstrow is False:
+                    if patientid != row[3]:
+                        patientid = row[3]
+                        csv_write.writerow(row)
+                else:
+                    firstrow = False
+                    csv_write.writerow(row)
+
+    with open(temppath, newline='') as csvreadfile:
+        with open(cleanFilePath, 'w', newline='') as csvwritefile:
+            csv_read = csv.reader(csvreadfile, delimiter=',')
+            csv_write = csv.writer(csvwritefile, delimiter=',')
+            firstrow = True
+
+            if colenum == -1:
+                for row in csv_read:
+                    if firstrow is False:
+                        img_path = os.path.join(imgPath, row[0])
+                        if os.path.exists(img_path):
+                            diseases = [0 for n in range(len(Disease) - 1)]
+                            if row[1] == "No Finding":
+                                values = [row[0]]
+                                values.extend(diseases)
+                                csv_write.writerow(values)
+                            else:
+                                diseasefindings = row[1].split('|')
+                                for eachdisease in diseasefindings:
+                                    diseases[Disease[eachdisease].value] = 1
+                                values = [row[0]]
+                                values.extend(diseases)
+                                csv_write.writerow(values)
+                    else:
+                        firstrow = False
+                        csv_write.writerow(['Image Index'] +
+                                           [d.name for d in Disease if d.value < 20])
+
+            elif colenum == Disease.HasDisease.value:
+                for row in csv_read:
+                    if firstrow is False:
+                        img_path = os.path.join(imgPath, row[0])
+                        if position != '':
+                            if row[6] == position:
+                                if os.path.exists(img_path):
+                                    if row[1] == "No Finding":
+                                        csv_write.writerow([row[0], 0])
+                                    else:
+                                        csv_write.writerow([row[0], 1])
+                        else:
+                            if os.path.exists(img_path):
+                                if row[1] == "No Finding":
+                                    csv_write.writerow([row[0], 0])
+                                else:
+                                    csv_write.writerow([row[0], 1])
+
+                    else:
+                        firstrow = False
+                        csv_write.writerow(['Image Index', Disease.HasDisease.name])
+
+            else:
+                diseasecol = ''
+                for data in Disease:
+                    if data.value == colenum:
+                        diseasecol = data.name
+                        break
+
+                for row in csv_read:
+                    if firstrow is False:
+                        img_path = os.path.join(imgPath, row[0])
+                        if os.path.exists(img_path):
+                            diseasefindings = row[1].split('|')
+                            if diseasecol in diseasefindings:
+                                csv_write.writerow([row[0], 1])
+                            else:
+                                csv_write.writerow([row[0], 0])
+                    else:
+                        firstrow = False
+                        csv_write.writerow(['Image Index', diseasecol])
+
+
+def makecleanedcsv(topsavefolder, imageFolderPath, usedset, colenum, position, uniqueflag):
     if usedset == 'sample':
         origcsvpath = os.path.join('set', 'sample_labels.csv')
     else:
         origcsvpath = os.path.join('set', 'Data_Entry_2017_v2020.csv')
 
+    os.makedirs(topsavefolder, exist_ok=True)
+    temppath = os.path.join(topsavefolder, 'TempUnique.csv')
     cleanpath = os.path.join(topsavefolder, 'Entry_cleaned_2020.csv')
-    clean_then_save_csv(origcsvpath, cleanpath, imageFolderPath, colenum, position)
+
+    if uniqueflag:
+        clean_then_save_csv_unique(origcsvpath, cleanpath, imageFolderPath, colenum, position, temppath)
+    else:
+        clean_then_save_csv(origcsvpath, cleanpath, imageFolderPath, colenum, position)

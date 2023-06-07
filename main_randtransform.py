@@ -89,16 +89,28 @@ def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, o
 
 
 def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
-              train_t, valid_t, resizeflag, usedcolumn, takenum, position):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+              train_t, valid_t, resizeflag, usedcolumn, takenum, position, uniqueflag):
+
+    if len(sys.argv) > 3 and (sys.argv[2] == 'cpu' or sys.argv[2] == 'cuda'):
+        device = sys.argv[2]
+    else:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # training stage; save the model with the highest f1 score
-    if resizeflag is True:
+    if resizeflag:
         topsetfolder = os.path.join('set', 'all', 'resized', '')
-        topsavefolder = os.path.join('save', 'resized', 'combine', usedcolumn.name, position, '')
+
+        if uniqueflag:
+            topsavefolder = os.path.join('save', 'resized', 'combine', usedcolumn.name, 'unique', position, '')
+        else:
+            topsavefolder = os.path.join('save', 'resized', 'combine', usedcolumn.name, position, '')
     else:
         topsetfolder = os.path.join('set', 'all', '')
-        topsavefolder = os.path.join('save', 'combine', usedcolumn.name, position, '')
+
+        if uniqueflag:
+            topsavefolder = os.path.join('save', 'combine', usedcolumn.name, 'unique', position, '')
+        else:
+            topsavefolder = os.path.join('save', 'combine', usedcolumn.name, position, '')
 
     for setname in allsets:
         imageFolderPath = os.path.join(topsetfolder, setname, '')
@@ -108,9 +120,9 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
         os.makedirs(sf, exist_ok=True)
 
         # making clean csv files
-        #DataUtil.makecleanedcsv(csvfolder, imageFolderPath, setname, usedcolumn.value, position)
-        #csvpath = os.path.join(csvfolder, 'Entry_cleaned_2020.csv')
-        #DataUtil.savestratifiedsplits(csvpath, csvfolder, 0.8)
+        DataUtil.makecleanedcsv(csvfolder, imageFolderPath, setname, usedcolumn.value, position, uniqueflag)
+        csvpath = os.path.join(csvfolder, 'Entry_cleaned_2020.csv')
+        DataUtil.savestratifiedsplits(csvpath, csvfolder, 0.8)
 
         bestmodel = training_stage(device, imageFolderPath, csvfolder, sf, bestmodel, model_t, optim_t,
                                    optim_f, outputNum=1, train_ratio=0.8, name=usedcolumn.name,
@@ -122,7 +134,7 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
 
 
 def oneBigTempIter(sets, usedcolumn, position, resizeflag, normflag, sepiaflag, sharpenopt, foldername,
-                   gaussflag, scaleflag):
+                   gaussflag, scaleflag, uniqueflag):
     train_transform, valid_transform = TransformUtil.getTransformsFromFlags(
         resizeflag, normflag, sepiaflag, sharpenopt, gaussflag, scaleflag)
 
@@ -131,12 +143,18 @@ def oneBigTempIter(sets, usedcolumn, position, resizeflag, normflag, sepiaflag, 
     optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.0001', 0.0, 50)
 
     doOneIter(None, sets, modeltype, optim_transfer, optim_finetuning,
-              train_transform, valid_transform, resizeflag, usedcolumn, foldername, position)
+              train_transform, valid_transform, resizeflag, usedcolumn, foldername, position, uniqueflag)
 
     if resizeflag is True:
-        topsave = os.path.join('save', 'resized', 'combine', usedcolumn.name, position, '')
+        if uniqueflag:
+            topsave = os.path.join('save', 'resized', 'combine', usedcolumn.name, 'unique', position, '')
+        else:
+            topsave = os.path.join('save', 'resized', 'combine', usedcolumn.name, position, '')
     else:
-        topsave = os.path.join('save', 'combine', usedcolumn.name, position, '')
+        if uniqueflag:
+            topsave = os.path.join('save', 'combine', usedcolumn.name, 'unique', position, '')
+        else:
+            topsave = os.path.join('save', 'combine', usedcolumn.name, position, '')
 
     transformsave = os.path.join(topsave, foldername, 'Transformations.txt')
     with open(transformsave, 'w') as logFile:
@@ -155,11 +173,12 @@ if __name__ == "__main__":
         #'set4',
         #'set5',
         #'set6',
-        'set7',
+        #'set7',
         #'set8',
         #'set9',
         #'set10',
         #'set11',
+        'whole',
     ]
 
     column_output = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
@@ -173,7 +192,12 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         use_resized = bool(int(sys.argv[2]))
     else:
-        use_resized = False
+        use_resized = True
+
+    if len(sys.argv) > 3:
+        use_unique = bool(int(sys.argv[3]))
+    else:
+        use_unique = False
 
     if option % 2 == 0:
         norm_imagenet = False
@@ -217,4 +241,4 @@ if __name__ == "__main__":
     folder_name_use = 'custom' + gauss_name + scale_name + sepia_name + sharpen_name + norm_name
 
     oneBigTempIter(sets_to_use, column_output, viewing_position, use_resized, norm_imagenet, use_sepia,
-                   use_sharpen, folder_name_use, use_gauss, use_scale)
+                   use_sharpen, folder_name_use, use_gauss, use_scale, use_unique)
