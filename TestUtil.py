@@ -29,7 +29,6 @@ def test_stage(bestmodel, device, topsetfolder, topsavefolder, foldname, modelty
     model = modeltype(1, device, optimtype)
     checkpoint = torch.load(bestmodel[0])
     model.model.load_state_dict(checkpoint['model_state_dict'])
-    model.opt[0].load_state_dict(checkpoint['optimizer_state_dict'])
 
     trainer = Trainer.TrainerSingle(
         best_path=None,

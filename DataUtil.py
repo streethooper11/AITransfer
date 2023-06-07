@@ -13,8 +13,8 @@ def savestratifiedsplits(dataPath, savefolder, train_ratio):
     y = df.iloc[:, -1]
     train, test = train_test_split(df, train_size=train_ratio, stratify=y, random_state=11)
 
-    train.to_csv(os.path.join(savefolder, 'Entry_cleaned_Train.csv'), index=False)
-    test.to_csv(os.path.join(savefolder, 'Entry_cleaned_Test.csv'), index=False)
+    train.to_csv(os.path.join(savefolder, 'Entry_cleaned_2020_Train.csv'), index=False)
+    test.to_csv(os.path.join(savefolder, 'Entry_cleaned_2020_Test.csv'), index=False)
 
 
 def clean_then_save_csv(origFilePath, cleanFilePath, imgPath, colenum, position):
@@ -95,5 +95,5 @@ def makecleanedcsv(topsavefolder, imageFolderPath, usedset, colenum, position):
     else:
         origcsvpath = os.path.join('set', 'Data_Entry_2017_v2020.csv')
 
-    cleanpath = os.path.join(topsavefolder, 'Entry_cleaned.csv')
+    cleanpath = os.path.join(topsavefolder, 'Entry_cleaned_2020.csv')
     clean_then_save_csv(origcsvpath, cleanpath, imageFolderPath, colenum, position)

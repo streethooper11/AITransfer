@@ -69,7 +69,7 @@ def getTransforms(a_opt, t_opt, resizeflag):
 
     return train_transform, test_transform
 
-def getTransformsFromFlags(resized, imagenetnorm, sepia, sharpenflag):
+def getTransformsFromFlags(resized, imagenetnorm, sepia, sharpenflag, gaussflag, scaleflag):
     translate_per = dict()
     translate_per['x'] = 0
     translate_per['y'] = -0.15
@@ -102,12 +102,36 @@ def getTransformsFromFlags(resized, imagenetnorm, sepia, sharpenflag):
     else:
         sharp = [A.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), p=1.0)]
 
-    aug = [
-        A.Affine(scale=(1.0, 1.1), translate_percent=None, rotate=(-10, 10), p=0.5),
-        #A.GaussNoise(per_channel=False, p=0.5),
-        #A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
-        A.HorizontalFlip(p=0.5),
-    ]
+    if scaleflag:
+        if gaussflag:
+            aug = [
+                A.Affine(scale=(1.0, 1.1), translate_percent=None, rotate=(-10, 10), p=0.5),
+                A.GaussNoise(per_channel=False, p=0.5),
+                # A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+                A.HorizontalFlip(p=0.5),
+            ]
+        else:
+            aug = [
+                A.Affine(scale=(1.0, 1.1), translate_percent=None, rotate=(-10, 10), p=0.5),
+                # A.GaussNoise(per_channel=False, p=0.5),
+                # A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+                A.HorizontalFlip(p=0.5),
+            ]
+    else:
+        if gaussflag:
+            aug = [
+                A.Affine(scale=None, translate_percent=None, rotate=(-10, 10), p=0.5),
+                A.GaussNoise(per_channel=False, p=0.5),
+                # A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+                A.HorizontalFlip(p=0.5),
+            ]
+        else:
+            aug = [
+                A.Affine(scale=None, translate_percent=None, rotate=(-10, 10), p=0.5),
+                # A.GaussNoise(per_channel=False, p=0.5),
+                # A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+                A.HorizontalFlip(p=0.5),
+            ]
 
     train_transform = A.Compose(
         prework + crop + aug + sepia + sharp + resize + norm + suffix

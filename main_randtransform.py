@@ -25,7 +25,7 @@ from DiseaseEnum import Disease
 
 def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, optim_t, optim_f,
                    outputNum=1, train_ratio=0.8, name='', train_t=None, valid_t=None):
-    train_path = os.path.join(csvpath, 'Entry_cleaned_Train.csv')
+    train_path = os.path.join(csvpath, 'Entry_cleaned_2020_Train.csv')
     train_df = pd.read_csv(train_path)
     x_train = train_df.iloc[:, 0:-1]
     y_train = train_df.iloc[:, -1]
@@ -33,7 +33,7 @@ def training_stage(device, imagePath, csvpath, savefolder, bestmodel, model_t, o
     trainDS = MyDataset.CustomImageDatasetSingle(imagePath, x_train, y_train)
     trainDS.transform = train_t
 
-    valid_path = os.path.join(csvpath, 'Entry_cleaned_Test.csv')
+    valid_path = os.path.join(csvpath, 'Entry_cleaned_2020_Test.csv')
     valid_df = pd.read_csv(valid_path)
     x_val = valid_df.iloc[:, 0:-1]
     y_val = valid_df.iloc[:, -1]
@@ -95,10 +95,10 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
     # training stage; save the model with the highest f1 score
     if resizeflag is True:
         topsetfolder = os.path.join('set', 'all', 'resized', '')
-        topsavefolder = os.path.join('save', 'resized', 'combine', column.name, position, '')
+        topsavefolder = os.path.join('save', 'resized', 'combine', usedcolumn.name, position, '')
     else:
         topsetfolder = os.path.join('set', 'all', '')
-        topsavefolder = os.path.join('save', 'combine', column.name, position, '')
+        topsavefolder = os.path.join('save', 'combine', usedcolumn.name, position, '')
 
     for setname in allsets:
         imageFolderPath = os.path.join(topsetfolder, setname, '')
@@ -108,9 +108,9 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
         os.makedirs(sf, exist_ok=True)
 
         # making clean csv files
-        # DataUtil.makecleanedcsv(csvfolder, imageFolderPath, setname, usedcolumn.value, position)
-        # csvpath = os.path.join(csvfolder, 'Entry_cleaned.csv')
-        # DataUtil.savestratifiedsplits(csvpath, csvfolder, 0.8)
+        #DataUtil.makecleanedcsv(csvfolder, imageFolderPath, setname, usedcolumn.value, position)
+        #csvpath = os.path.join(csvfolder, 'Entry_cleaned_2020.csv')
+        #DataUtil.savestratifiedsplits(csvpath, csvfolder, 0.8)
 
         bestmodel = training_stage(device, imageFolderPath, csvfolder, sf, bestmodel, model_t, optim_t,
                                    optim_f, outputNum=1, train_ratio=0.8, name=usedcolumn.name,
@@ -121,47 +121,22 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
                         usedcolumn)
 
 
-if __name__ == "__main__":
-    torch.backends.cudnn.benchmark = True
-
-    setnames = [
-        # 'set2',
-        # 'set3',
-        # 'set4',
-        # 'set5',
-        # 'set6',
-        'set7',
-        # 'set8',
-        # 'set9',
-        # 'set10',
-        # 'set11',
-        # 'sample',
-    ]
+def oneBigTempIter(sets, usedcolumn, position, resizeflag, normflag, sepiaflag, sharpenopt, foldername,
+                   gaussflag, scaleflag):
+    train_transform, valid_transform = TransformUtil.getTransformsFromFlags(
+        resizeflag, normflag, sepiaflag, sharpenopt, gaussflag, scaleflag)
 
     modeltype = Models.MobileNetV2
-    optim_transfer = (torch.optim.AdamW, '_AdamW_', '0.001', 0.0, 30)
-    optim_finetuning = (torch.optim.AdamW, '_AdamW_fine_', '0.001', 0.0, 50)
+    optim_transfer = (torch.optim.Adam, '_Adam_', '0.001', 0.0, 50)
+    optim_finetuning = (torch.optim.Adam, '_Adam_fine_', '0.0001', 0.0, 50)
 
-    column = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
-    view_position = ''
+    doOneIter(None, sets, modeltype, optim_transfer, optim_finetuning,
+              train_transform, valid_transform, resizeflag, usedcolumn, foldername, position)
 
-    resized = False
-    imagenetnorm = True
-    sepia = False
-    sharpenflag = 1
-
-    train_transform, valid_transform = TransformUtil.getTransformsFromFlags(
-        resized, imagenetnorm, sepia, sharpenflag)
-
-    foldername = 'custom'
-
-    doOneIter(None, setnames, modeltype, optim_transfer, optim_finetuning,
-              train_transform, valid_transform, resized, column, foldername, view_position)
-
-    if resized is True:
-        topsave = os.path.join('save', 'resized', 'combine', column.name, view_position, '')
+    if resizeflag is True:
+        topsave = os.path.join('save', 'resized', 'combine', usedcolumn.name, position, '')
     else:
-        topsave = os.path.join('save', 'combine', column.name, view_position, '')
+        topsave = os.path.join('save', 'combine', usedcolumn.name, position, '')
 
     transformsave = os.path.join(topsave, foldername, 'Transformations.txt')
     with open(transformsave, 'w') as logFile:
@@ -169,3 +144,74 @@ if __name__ == "__main__":
         logFile.write(str(train_transform))
         logFile.write('\nValidation transform:\n')
         logFile.write(str(valid_transform))
+
+
+if __name__ == "__main__":
+    torch.backends.cudnn.benchmark = True
+
+    sets_to_use = [
+        #'set2',
+        #'set3',
+        #'set4',
+        #'set5',
+        #'set6',
+        'set7',
+        #'set8',
+        #'set9',
+        #'set10',
+        #'set11',
+    ]
+
+    column_output = Disease.HasDisease  # Used when multi-label flag is false; only work on this column
+    viewing_position = ''
+
+    use_resized = True
+
+    if len(sys.argv) > 1:
+        option = int(sys.argv[1])
+    else:
+        option = 0
+
+    if option % 2 == 0:
+        norm_imagenet = False
+        norm_name = '_graynorm'
+    else:
+        norm_imagenet = True
+        norm_name = '_imagenorm'
+
+    use_sharpen = (option % 6) // 2
+    if use_sharpen == 0:
+        sharpen_name = '_nosharp'
+    elif use_sharpen == 1:
+        sharpen_name = '_CLAHE'
+    else:
+        sharpen_name = '_sharpen'
+
+    sepia = (option % 12) // 6
+    if sepia == 0:
+        use_sepia = False
+        sepia_name = '_nosepia'
+    else:
+        use_sepia = True
+        sepia_name = '_sepia'
+
+    scaling = (option % 24) // 12
+    if scaling == 0:
+        use_scale = False
+        scale_name = '_noscale'
+    else:
+        use_scale = True
+        scale_name = '_scale'
+
+    gaussing = option // 24
+    if gaussing == 0:
+        use_gauss = False
+        gauss_name = '_nogauss'
+    else:
+        use_gauss = True
+        gauss_name = '_gauss'
+
+    folder_name_use = 'custom' + gauss_name + scale_name + sepia_name + sharpen_name + norm_name
+
+    oneBigTempIter(sets_to_use, column_output, viewing_position, use_resized, norm_imagenet, use_sepia,
+                   use_sharpen, folder_name_use, use_gauss, use_scale)
