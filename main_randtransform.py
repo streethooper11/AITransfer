@@ -171,14 +171,9 @@ if __name__ == "__main__":
         option = 0
 
     if len(sys.argv) > 2:
-        resizing = int(sys.argv[2])
+        use_resized = bool(int(sys.argv[2]))
     else:
-        resizing = 0
-
-    if resizing == 0:
         use_resized = False
-    else:
-        use_resized = True
 
     if option % 2 == 0:
         norm_imagenet = False
