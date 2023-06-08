@@ -127,10 +127,10 @@ def doOneIter(bestmodel, allsets, model_t, optim_t, optim_f,
         bestmodel = training_stage(device, imageFolderPath, csvfolder, sf, bestmodel, model_t, optim_t,
                                    optim_f, outputNum=1, train_ratio=0.8, name=usedcolumn.name,
                                    train_t=train_t, valid_t=valid_t)
+        # Test each iteration
+        TestUtil.test_stage(bestmodel, device, topsetfolder, topsavefolder, sf, model_t, optim_f, valid_t,
+                            usedcolumn)
 
-    # Test each iteration
-    TestUtil.test_stage(bestmodel, device, topsetfolder, topsavefolder, takenum, model_t, optim_f, valid_t,
-                        usedcolumn)
 
 
 def oneBigTempIter(sets, usedcolumn, position, resizeflag, normflag, sepiaflag, sharpenopt, foldername,
@@ -162,6 +162,52 @@ def oneBigTempIter(sets, usedcolumn, position, resizeflag, normflag, sepiaflag, 
         logFile.write(str(train_transform))
         logFile.write('\nValidation transform:\n')
         logFile.write(str(valid_transform))
+
+
+def setFlagsAndDoIter(sets, usedcolumn, position, resizeflag, uniqueflag, transform_opt):
+    if transform_opt % 2 == 0:
+        norm_imagenet = False
+        norm_name = '_graynorm'
+    else:
+        norm_imagenet = True
+        norm_name = '_imagenorm'
+
+    use_sharpen = (transform_opt % 6) // 2
+    if use_sharpen == 0:
+        sharpen_name = '_nosharp'
+    elif use_sharpen == 1:
+        sharpen_name = '_CLAHE'
+    else:
+        sharpen_name = '_sharpen'
+
+    sepia = (transform_opt % 12) // 6
+    if sepia == 0:
+        use_sepia = False
+        sepia_name = '_nosepia'
+    else:
+        use_sepia = True
+        sepia_name = '_sepia'
+
+    scaling = (transform_opt % 24) // 12
+    if scaling == 0:
+        use_scale = False
+        scale_name = '_noscale'
+    else:
+        use_scale = True
+        scale_name = '_scale'
+
+    gaussing = transform_opt // 24
+    if gaussing == 0:
+        use_gauss = False
+        gauss_name = '_nogauss'
+    else:
+        use_gauss = True
+        gauss_name = '_gauss'
+
+    folder_name_use = 'custom' + gauss_name + scale_name + sepia_name + sharpen_name + norm_name
+
+    oneBigTempIter(sets, usedcolumn, position, resizeflag, norm_imagenet, use_sepia,
+                   use_sharpen, folder_name_use, use_gauss, use_scale, uniqueflag)
 
 
 if __name__ == "__main__":
@@ -239,6 +285,11 @@ if __name__ == "__main__":
         gauss_name = '_gauss'
 
     folder_name_use = 'custom' + gauss_name + scale_name + sepia_name + sharpen_name + norm_name
+
+    oneBigTempIter(sets_to_use, column_output, viewing_position, use_resized, norm_imagenet, use_sepia,
+                   use_sharpen, folder_name_use, use_gauss, use_scale, use_unique)
+
+    use_unique = True
 
     oneBigTempIter(sets_to_use, column_output, viewing_position, use_resized, norm_imagenet, use_sepia,
                    use_sharpen, folder_name_use, use_gauss, use_scale, use_unique)

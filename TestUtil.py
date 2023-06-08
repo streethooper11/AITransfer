@@ -7,11 +7,11 @@ import MyDataset
 import Loader
 import Trainer
 
-def test_stage(bestmodel, device, topsetfolder, topsavefolder, foldname, modeltype, optimtype, test_t,
+def test_stage(bestmodel, device, topsetfolder, topsavefolder, sf, modeltype, optimtype, test_t,
                column):
     # test stage
     imageFolderPath = os.path.join(topsetfolder, 'test', '')
-    sf = os.path.join(topsavefolder, foldname, 'test', '')
+    sf = os.path.join(sf, 'test', '')
     csvfolder = os.path.join(topsavefolder, 'test', '')
 
     os.makedirs(sf, exist_ok=True)
